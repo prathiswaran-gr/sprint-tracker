@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { VisitorAnalytics } from "@/components/analytics";
 import { Providers } from "@/components/providers";
 import { accentInitScript, DEFAULT_ACCENT } from "@/lib/accents";
 import "./globals.css";
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full">
         <Providers>{children}</Providers>
+        <VisitorAnalytics />
       </body>
     </html>
   );
