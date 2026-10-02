@@ -1,16 +1,15 @@
 "use client";
 
-import { LogOut, Monitor, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import { LogOut } from "lucide-react";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup,
-  DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 export interface SessionUser {
   email: string;
   name: string;
   avatar: string | null;
+  accent: string | null;
 }
 
 export function Avatar({ user, className = "size-7" }: { user: SessionUser; className?: string }) {
@@ -25,7 +24,6 @@ export function Avatar({ user, className = "size-7" }: { user: SessionUser; clas
 }
 
 export function UserMenu({ user, compact }: { user: SessionUser; compact?: boolean }) {
-  const { theme, setTheme } = useTheme();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left text-sm outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring">
@@ -39,12 +37,6 @@ export function UserMenu({ user, compact }: { user: SessionUser; compact?: boole
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" side="top" className="w-56">
         <DropdownMenuLabel className="truncate">{user.email}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
-          <DropdownMenuRadioItem value="dark"><Moon /> Dark</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="light"><Sun /> Light</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="system"><Monitor /> System</DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <form action="/auth/signout" method="post">
           <DropdownMenuItem asChild variant="destructive">

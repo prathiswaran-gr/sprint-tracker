@@ -7,7 +7,9 @@ import { useEffect } from "react";
 import {
   Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut,
 } from "@/components/ui/command";
+import { useAccent } from "@/hooks/use-accent";
 import { useSprints } from "@/hooks/use-sprints";
+import { ACCENTS, swatch } from "@/lib/accents";
 import { setPaletteOpen, usePaletteContext, usePaletteOpen } from "@/lib/palette-store";
 import { DifficultyDot } from "@/components/sprint/chips";
 
@@ -19,6 +21,7 @@ export function CommandPalette() {
   const { data: sprints } = useSprints();
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
+  const [accent, setAccent] = useAccent({ syncToAccount: true });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -75,8 +78,15 @@ export function CommandPalette() {
           </CommandGroup>
           <CommandGroup heading="Preferences">
             <CommandItem onSelect={run(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"))}>
-              <Moon /> Toggle theme
+              <Moon /> Toggle light / dark
             </CommandItem>
+            {ACCENTS.map((a) => (
+              <CommandItem key={a.id} value={`theme colour ${a.label}`} onSelect={run(() => setAccent(a.id))}>
+                <span className="size-3.5 rounded-full" style={{ background: swatch(a) }} />
+                Theme colour: {a.label}
+                {accent === a.id && <Check className="ml-auto" />}
+              </CommandItem>
+            ))}
           </CommandGroup>
         </CommandList>
       </Command>

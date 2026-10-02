@@ -2,6 +2,7 @@ import { BarChart3, CalendarClock, Building2, FileSpreadsheet, NotebookPen, Star
 import { Suspense } from "react";
 import { GoogleSignIn } from "@/components/google-sign-in";
 import { Logo } from "@/components/logo";
+import { ThemeButton } from "@/components/theme-picker";
 
 const FEATURES = [
   { icon: FileSpreadsheet, title: "Drop in your sheet", body: "Upload any .xlsx prep sheet. Columns are detected automatically — fix the mapping in one click." },
@@ -21,6 +22,7 @@ export default async function Landing({ searchParams }: PageProps<"/">) {
 
       <header className="relative mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <Logo />
+        <ThemeButton side="bottom" />
       </header>
 
       <section className="relative mx-auto max-w-3xl px-6 pt-16 pb-20 text-center sm:pt-24">

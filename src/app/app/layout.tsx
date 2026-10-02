@@ -11,6 +11,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
     email: data.user.email ?? "",
     name: meta.full_name ?? meta.name ?? data.user.email ?? "You",
     avatar: meta.avatar_url ?? meta.picture ?? null,
+    accent: typeof meta.accent === "string" ? meta.accent : null,
   };
   return <AppShell user={user}>{children}</AppShell>;
 }

@@ -6,6 +6,8 @@ import { CommandPalette, openCommandPalette } from "@/components/command-palette
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { ThemeButton } from "@/components/theme-picker";
+import { AccentSync } from "./accent-sync";
 import { SprintNav } from "./sprint-nav";
 import { UserMenu, type SessionUser } from "./user-menu";
 
@@ -24,7 +26,10 @@ function Sidebar({ user, onNavigate }: { user: SessionUser; onNavigate?: () => v
       <div className="min-h-0 flex-1 overflow-y-auto">
         <SprintNav onNavigate={onNavigate} />
       </div>
-      <UserMenu user={user} />
+      <div className="flex items-center gap-1">
+        <div className="min-w-0 flex-1"><UserMenu user={user} /></div>
+        <ThemeButton syncToAccount />
+      </div>
     </div>
   );
 }
@@ -56,6 +61,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
         <main className="min-w-0 flex-1">{children}</main>
       </div>
       <CommandPalette />
+      <AccentSync accent={user.accent} />
     </div>
   );
 }
