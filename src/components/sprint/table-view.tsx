@@ -73,7 +73,7 @@ export function TableView({ problems, onSort }: { problems: Problem[]; onSort: (
                 checked={Boolean(p.done_at)}
                 onCheckedChange={() => a.toggleDone(p)}
                 aria-label={`Mark ${p.name} ${p.done_at ? "not done" : "done"}`}
-                className="size-4.5 rounded-full data-[state=checked]:border-basic data-[state=checked]:bg-basic"
+                className="size-4.5 rounded-full"
               />
               <span className="flex min-w-0 items-center gap-1.5">
                 <ProblemName problem={p} />

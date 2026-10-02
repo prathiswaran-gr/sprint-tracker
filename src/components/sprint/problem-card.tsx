@@ -85,7 +85,7 @@ export function ProblemCard({ problem, draggable = true }: { problem: Problem; d
         checked={Boolean(problem.done_at)}
         onCheckedChange={() => a.toggleDone(problem)}
         aria-label={`Mark ${problem.name} ${problem.done_at ? "not done" : "done"}`}
-        className="size-4.5 rounded-full data-[state=checked]:border-basic data-[state=checked]:bg-basic"
+        className="size-4.5 rounded-full"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2.5">
         <ProblemName problem={problem} />
