@@ -1,7 +1,8 @@
 "use client";
 
 import { format, parseISO } from "date-fns";
-import { BarChart3, CalendarClock, FastForward, Settings2 } from "lucide-react";
+import { BarChart3, CalendarClock, FastForward, Globe, Settings2, Share2 } from "lucide-react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -31,13 +32,40 @@ export function SprintHeader({ sprint, stats, onSettings, onShift, onJumpToday }
           <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold tabular-nums">{pct}%</span>
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-semibold tracking-tight">{sprint.title}</h1>
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="truncate text-2xl font-semibold tracking-tight">{sprint.title}</h1>
+            {sprint.visibility === "public" && (
+              <Link
+                href={`/app/sheets/${sprint.id}`}
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/25"
+              >
+                <Globe className="size-3" /> Public{sprint.copy_count > 0 && ` · ${sprint.copy_count} cop${sprint.copy_count === 1 ? "y" : "ies"}`}
+              </Link>
+            )}
+          </div>
           <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">
             {stats.done} of {stats.total} done
             {sprint.start_date && <> · started {format(parseISO(sprint.start_date), "MMM d, yyyy")}</>}
+            {sprint.copied_from && (
+              <> · <Link href={`/app/sheets/${sprint.copied_from}`} className="hover:text-foreground hover:underline">copied from a public sheet</Link></>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-1.5">
+          {sprint.visibility === "public" && (
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Copy share link"
+              className="rounded-lg"
+              onClick={async () => {
+                await navigator.clipboard.writeText(`${location.origin}/app/sheets/${sprint.id}`);
+                toast.success("Share link copied");
+              }}
+            >
+              <Share2 />
+            </Button>
+          )}
           <Button variant="outline" size="sm" asChild className="rounded-lg">
             <Link href={`/app/s/${sprint.id}/stats`}><BarChart3 /> <span className="max-sm:hidden">Stats</span></Link>
           </Button>

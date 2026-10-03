@@ -54,6 +54,13 @@ describe("makeSprintForDay", () => {
   });
 });
 
+describe("makeSprintForDay after a shift", () => {
+  it("prefers the original sprint over the rescheduled one", () => {
+    const sprintFor = makeSprintForDay([{ original_day_no: 5, sprint_no: 2, original_sprint_no: 1 }]);
+    expect(sprintFor(5)).toBe(1);
+  });
+});
+
 describe("shiftBacklog", () => {
   const p = (id: string, day_no: number, done = false) => ({ id, day_no, done_at: done ? "x" : null });
   const sprintFor = (d: number) => (d <= 7 ? 1 : 2);

@@ -1,5 +1,5 @@
 import { supabaseBrowser } from "@/lib/supabase/client";
-import type { Problem, ProblemInput, SavedFilter, Sprint } from "@/lib/types";
+import type { Problem, ProblemInput, PublicProblem, PublicSheet, SavedFilter, Sprint } from "@/lib/types";
 
 const db = () => supabaseBrowser();
 const PAGE = 1000; // PostgREST default max rows
@@ -10,7 +10,12 @@ function unwrap<T>({ data, error }: { data: T | null; error: { message: string }
 }
 
 export type ProblemPatch = Partial<Pick<Problem, "done_at" | "starred" | "notes" | "day_no" | "sprint_no">>;
-export type SprintPatch = Partial<Pick<Sprint, "title" | "start_date" | "skip_weekends" | "rest_days">>;
+export type SprintPatch = Partial<
+  Pick<
+    Sprint,
+    "title" | "start_date" | "skip_weekends" | "rest_days" | "visibility" | "description" | "show_owner" | "owner_name" | "owner_avatar" | "published_at"
+  >
+>;
 export type DayChange = { id: string; day_no: number; sprint_no: number };
 
 export interface SprintSummary extends Sprint {
@@ -49,7 +54,7 @@ export async function createSprint(input: { title: string; start_date: string | 
   const sprint = unwrap(await db().from("sprints").insert(input).select().single()) as Sprint;
   try {
     for (let i = 0; i < rows.length; i += 500) {
-      const chunk = rows.slice(i, i + 500).map((r) => ({ ...r, sprint_id: sprint.id, original_day_no: r.day_no }));
+      const chunk = rows.slice(i, i + 500).map((r) => ({ ...r, sprint_id: sprint.id, original_day_no: r.day_no, original_sprint_no: r.sprint_no }));
       unwrap(await db().from("problems").insert(chunk));
     }
   } catch (e) {
@@ -85,4 +90,28 @@ export async function createSavedFilter(name: string, query: Record<string, unkn
 
 export async function deleteSavedFilter(id: string) {
   unwrap(await db().from("saved_filters").delete().eq("id", id));
+}
+
+export async function listPublicSheets(): Promise<PublicSheet[]> {
+  return unwrap(await db().from("public_sheets").select("*").order("published_at", { ascending: false }).limit(500)) as PublicSheet[];
+}
+
+/** Public catalogue for one sheet, or null if it doesn't exist / isn't public. */
+export async function getPublicSheet(id: string): Promise<{ sheet: PublicSheet; problems: PublicProblem[] } | null> {
+  const sheet = unwrap(await db().from("public_sheets").select("*").eq("id", id).maybeSingle()) as PublicSheet | null;
+  if (!sheet) return null;
+  const problems: PublicProblem[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const page = unwrap(
+      await db().from("public_sheet_problems").select("*").eq("sprint_id", id).order("position").range(from, from + PAGE - 1),
+    ) as PublicProblem[];
+    problems.push(...page);
+    if (page.length < PAGE) break;
+  }
+  return { sheet, problems };
+}
+
+/** Copies a public sheet into the caller's account; returns the new sprint id. */
+export async function copyPublicSheet(id: string): Promise<string> {
+  return unwrap(await db().rpc("copy_public_sheet", { src: id })) as string;
 }

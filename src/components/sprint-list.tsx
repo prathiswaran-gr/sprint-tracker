@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
-import { FileSpreadsheet, Plus } from "lucide-react";
+import { Compass, FileSpreadsheet, Plus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,7 +17,10 @@ export function SprintList() {
           <h1 className="text-2xl font-semibold tracking-tight">Your sprints</h1>
           <p className="mt-1 text-sm text-muted-foreground">Pick up where you left off.</p>
         </div>
-        <Button asChild className="rounded-lg"><Link href="/app/import"><Plus /> New sprint</Link></Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline" className="rounded-lg"><Link href="/app/explore"><Compass /> <span className="max-sm:hidden">Browse public sheets</span></Link></Button>
+          <Button asChild className="rounded-lg"><Link href="/app/import"><Plus /> New sprint</Link></Button>
+        </div>
       </div>
 
       {isLoading && <div className="grid gap-4 sm:grid-cols-2">{[0, 1].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}</div>}
@@ -26,7 +29,7 @@ export function SprintList() {
         <Link href="/app/import" className="group flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed px-6 py-20 text-center transition-colors hover:border-primary/50 hover:bg-primary/5">
           <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><FileSpreadsheet className="size-6" /></div>
           <p className="font-medium">Upload your first prep sheet</p>
-          <p className="text-sm text-muted-foreground">Drop in an .xlsx and we&apos;ll turn it into a day-by-day sprint.</p>
+          <p className="text-sm text-muted-foreground">Drop in an .xlsx and we&apos;ll turn it into a day-by-day sprint — or copy one from Explore.</p>
         </Link>
       )}
 

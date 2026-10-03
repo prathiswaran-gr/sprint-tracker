@@ -1,0 +1,69 @@
+import { screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { mkSheet } from "@/test/fixtures/sheets";
+import { renderWithProviders } from "@/test/render";
+
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+const api = vi.hoisted(() => ({
+  getPublicSheet: vi.fn(),
+  copyPublicSheet: vi.fn(async () => "copy-1"),
+  listSprints: vi.fn(async () => [] as { id: string; copied_from: string | null }[]),
+}));
+vi.mock("@/lib/api", () => api);
+
+import { PublicSheetView } from "./public-sheet";
+
+const problems = [
+  { id: "a", sprint_id: "pub1", position: 0, name: "Two Sum", url: "https://x/two-sum", subject: "dsa", difficulty: "Basic", companies: ["Google"], topics: ["Hashing"], sprint_no: 1, day_no: 1 },
+  { id: "b", sprint_id: "pub1", position: 1, name: "LRU Cache", url: "", subject: "dsa", difficulty: "Pro", companies: ["Amazon"], topics: ["Design"], sprint_no: 1, day_no: 2 },
+];
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  api.getPublicSheet.mockResolvedValue({ sheet: mkSheet(), problems });
+  api.listSprints.mockResolvedValue([]);
+});
+
+describe("PublicSheetView", () => {
+  it("shows the catalogue and copies the sheet", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PublicSheetView id="pub1" />);
+    expect(await screen.findByRole("heading", { name: "DSA Prep Sheet" })).toBeInTheDocument();
+    expect(screen.getByText("Two Sum")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+
+    await user.click(await screen.findByRole("button", { name: /Use this sheet/ }));
+    await waitFor(() => expect(api.copyPublicSheet).toHaveBeenCalledWith("pub1"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/app/s/copy-1"));
+  });
+
+  it("links the owner to their own sprint", async () => {
+    api.listSprints.mockResolvedValue([{ id: "pub1", copied_from: null }]);
+    renderWithProviders(<PublicSheetView id="pub1" />);
+    expect(await screen.findByRole("link", { name: "Open your sprint" })).toHaveAttribute("href", "/app/s/pub1");
+  });
+
+  it("links to an existing copy instead of copying again", async () => {
+    api.listSprints.mockResolvedValue([{ id: "mine", copied_from: "pub1" }]);
+    renderWithProviders(<PublicSheetView id="pub1" />);
+    expect(await screen.findByRole("link", { name: "Open your copy" })).toHaveAttribute("href", "/app/s/mine");
+  });
+
+  it("filters the catalogue by company", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PublicSheetView id="pub1" />);
+    await screen.findByText("Two Sum");
+    await user.click(screen.getByRole("button", { name: /Company/ }));
+    await user.click(await screen.findByRole("option", { name: /Amazon/ }));
+    await waitFor(() => expect(screen.queryByText("Two Sum")).not.toBeInTheDocument());
+    expect(screen.getByText("LRU Cache")).toBeInTheDocument();
+  });
+
+  it("shows a not-available state for private sheets", async () => {
+    api.getPublicSheet.mockResolvedValue(null);
+    renderWithProviders(<PublicSheetView id="pub1" />);
+    expect(await screen.findByText("This sheet isn't available")).toBeInTheDocument();
+  });
+});

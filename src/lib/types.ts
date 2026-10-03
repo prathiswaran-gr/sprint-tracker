@@ -16,6 +16,7 @@ export interface Problem extends ProblemInput {
   id: string;
   sprint_id: string;
   original_day_no: number;
+  original_sprint_no: number | null;
   done_at: string | null;
   starred: boolean;
   notes: string;
@@ -29,6 +30,14 @@ export interface Sprint {
   start_date: string | null; // yyyy-MM-dd
   skip_weekends: boolean;
   rest_days: string[]; // yyyy-MM-dd
+  visibility: "private" | "public";
+  description: string;
+  show_owner: boolean;
+  owner_name: string | null;
+  owner_avatar: string | null;
+  published_at: string | null;
+  copied_from: string | null;
+  copy_count: number;
   created_at: string;
   updated_at?: string;
 }
@@ -40,3 +49,28 @@ export interface SavedFilter {
   query: Record<string, unknown>;
   created_at: string;
 }
+
+/** Row of the `public_sheets` view — catalogue summary, never the owner's progress. */
+export interface PublicSheet {
+  id: string;
+  title: string;
+  description: string;
+  owner_name: string | null;
+  owner_avatar: string | null;
+  published_at: string | null;
+  copy_count: number;
+  problem_count: number;
+  day_count: number;
+  sprint_count: number;
+  basic_count: number;
+  core_count: number;
+  pro_count: number;
+  topics: string[];
+  company_counts: Record<string, number>;
+}
+
+/** Row of the `public_sheet_problems` view. */
+export type PublicProblem = Pick<
+  Problem,
+  "id" | "sprint_id" | "position" | "name" | "url" | "subject" | "difficulty" | "companies" | "topics" | "sprint_no" | "day_no"
+>;

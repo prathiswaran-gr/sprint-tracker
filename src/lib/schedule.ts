@@ -48,9 +48,9 @@ export function currentPlanDay(cfg: ScheduleConfig, today: string): { day: numbe
 }
 
 /** Sprint number for a plan day, derived from the sheet's original day→sprint layout. */
-export function makeSprintForDay(rows: { original_day_no: number; sprint_no: number }[]) {
+export function makeSprintForDay(rows: { original_day_no: number; sprint_no: number; original_sprint_no?: number | null }[]) {
   const byDay = new Map<number, number>();
-  for (const r of rows) if (!byDay.has(r.original_day_no)) byDay.set(r.original_day_no, r.sprint_no);
+  for (const r of rows) if (!byDay.has(r.original_day_no)) byDay.set(r.original_day_no, r.original_sprint_no ?? r.sprint_no);
   const days = [...byDay.keys()].sort((a, b) => a - b);
   return (day: number): number => {
     let sprint = days.length ? byDay.get(days[0])! : 1;

@@ -7,8 +7,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { Facet } from "@/lib/filters";
 import { cn } from "@/lib/utils";
 
-export function FacetSelect({ label, facets, value, onChange, searchable = true }: {
+export function FacetSelect({ label, facets, value, onChange, searchable = true, format = (v) => v }: {
   label: string; facets: Facet[]; value: string[]; onChange: (v: string[]) => void; searchable?: boolean;
+  format?: (v: string) => string;
 }) {
   const toggle = (v: string) => onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
   return (
@@ -31,11 +32,11 @@ export function FacetSelect({ label, facets, value, onChange, searchable = true 
               {facets.map((f) => {
                 const on = value.includes(f.value);
                 return (
-                  <CommandItem key={f.value} value={f.value} onSelect={() => toggle(f.value)} className="gap-2">
+                  <CommandItem key={f.value} value={f.value} keywords={[format(f.value)]} onSelect={() => toggle(f.value)} className="gap-2">
                     <span className={cn("flex size-4 items-center justify-center rounded border", on && "border-primary bg-primary text-primary-foreground")}>
                       {on && <Check className="size-3" />}
                     </span>
-                    <span className="flex-1 truncate">{f.value}</span>
+                    <span className="flex-1 truncate">{format(f.value)}</span>
                     <span className="text-xs text-muted-foreground tabular-nums">{f.count}</span>
                   </CommandItem>
                 );

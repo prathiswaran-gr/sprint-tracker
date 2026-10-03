@@ -1,16 +1,19 @@
 "use client";
 
-import { addDays, format, parseISO, startOfWeek, subDays } from "date-fns";
-import { ArrowLeft, Flame, Star, Target, TimerReset, Trophy } from "lucide-react";
+import { format, parseISO, subDays } from "date-fns";
+import { ArrowLeft, Flame, Info, Star, Target, TimerReset, Trophy } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSprint } from "@/hooks/use-sprint";
+import { monthWeeks, periodMonths, periodStats, yearOptions, type Period } from "@/lib/calendar";
+import { formatSubject } from "@/lib/format";
 import { currentPlanDay } from "@/lib/schedule";
-import { breakdown, heatmap, streaks, summary } from "@/lib/stats";
+import { breakdown, heatmap, streaks, summary, toLocalDate } from "@/lib/stats";
 import { cn } from "@/lib/utils";
 
 function Tile({ icon: Icon, label, value, sub }: { icon: typeof Flame; label: string; value: string; sub?: string }) {
@@ -65,37 +68,81 @@ function BreakdownBars({ rows, limit = 8 }: { rows: { key: string; total: number
 
 const LEVELS = ["bg-muted", "bg-primary/30", "bg-primary/55", "bg-primary/80", "bg-primary"];
 
-function Heatmap({ counts, today }: { counts: Map<string, number>; today: string }) {
-  const weeks = 26;
-  const start = startOfWeek(subDays(parseISO(today), weeks * 7 - 1));
+function ActivityStrip({ counts, today, years }: { counts: Map<string, number>; today: string; years: number[] }) {
+  const [period, setPeriod] = useState<Period>("current");
+  const months = periodMonths(period, today);
+  const from = format(new Date(months[0].year, months[0].month, 1), "yyyy-MM-dd");
+  const last = months.at(-1)!;
+  const to = format(new Date(last.year, last.month + 1, 0), "yyyy-MM-dd");
+  const stats = periodStats(counts, from, to);
   const max = Math.max(1, ...counts.values());
-  const cols = Array.from({ length: weeks }, (_, w) =>
-    Array.from({ length: 7 }, (_, d) => {
-      const date = format(addDays(start, w * 7 + d), "yyyy-MM-dd");
-      return { date, n: counts.get(date) ?? 0, future: date > today };
-    }),
-  );
   const level = (n: number) => (n === 0 ? 0 : Math.min(4, Math.ceil((n / max) * 4)));
+
+  // Show the latest month first on narrow screens.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [period]);
+
   return (
-    <div>
-      <div className="flex gap-[3px] overflow-x-auto pb-1">
-        {cols.map((col, i) => (
-          <div key={i} className="flex flex-col gap-[3px]">
-            {col.map((c) => (
-              <Tooltip key={c.date}>
-                <TooltipTrigger asChild>
-                  <span className={cn("size-3 rounded-[3px]", c.future ? "bg-transparent" : LEVELS[level(c.n)])} />
-                </TooltipTrigger>
-                <TooltipContent>{c.n} solved · {format(parseISO(c.date), "EEE, MMM d")}</TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        ))}
+    <section className="rounded-2xl border bg-card/40 p-5">
+      <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <h2 className="flex items-center gap-1.5 text-base">
+          <span className="text-xl font-semibold tabular-nums">{stats.total}</span>
+          <span className="text-muted-foreground">solved {period === "current" ? "in the past one year" : `in ${period}`}</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="size-3.5 text-muted-foreground" aria-label="About this chart" />
+            </TooltipTrigger>
+            <TooltipContent>Problems marked done, by the day you completed them</TooltipContent>
+          </Tooltip>
+        </h2>
+        <div className="ml-auto flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+          <span>Total active days: <span className="font-medium text-foreground tabular-nums">{stats.activeDays}</span></span>
+          <span>Max streak: <span className="font-medium text-foreground tabular-nums">{stats.maxStreak}</span></span>
+          <Select value={String(period)} onValueChange={(v) => setPeriod(v === "current" ? "current" : Number(v))}>
+            <SelectTrigger size="sm" className="w-auto" aria-label="Period"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="current">Current</SelectItem>
+              {years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-      <div className="mt-3 flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
-        Less {LEVELS.map((l) => <span key={l} className={cn("size-3 rounded-[3px]", l)} />)} More
+
+      <div ref={scrollRef} className="overflow-x-auto pb-1">
+        <div className="flex w-max gap-2.5">
+          {months.map(({ year, month }) => (
+            <div key={`${year}-${month}`} className="flex flex-col items-center gap-1.5">
+              <div className="flex gap-[3px]">
+                {monthWeeks(year, month).map((week, w) => (
+                  <div key={w} className="flex flex-col gap-[3px]">
+                    {week.map((d, i) => {
+                      if (!d || d > today) return <span key={i} className="size-[11px]" />;
+                      const n = counts.get(d) ?? 0;
+                      return (
+                        <Tooltip key={d}>
+                          <TooltipTrigger asChild>
+                            <span className={cn("size-[11px] rounded-[2px]", LEVELS[level(n)], d === today && "ring-1 ring-foreground/60")} />
+                          </TooltipTrigger>
+                          <TooltipContent>{n} solved · {format(parseISO(d), "EEE, MMM d, yyyy")}</TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+              <span className="text-xs text-muted-foreground">{format(new Date(year, month, 1), "MMM")}</span>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+
+      <div className="mt-2 flex items-center justify-end gap-1 text-[11px] text-muted-foreground">
+        Less {LEVELS.map((l) => <span key={l} className={cn("size-[11px] rounded-[2px]", l)} />)} More
+      </div>
+    </section>
   );
 }
 
@@ -120,9 +167,10 @@ export function StatsDashboard({ id }: { id: string }) {
       sum: summary(problems, cur?.day ?? null),
       streak: streaks(doneAts, today),
       heat,
+      years: yearOptions(doneAts.map(toLocalDate), sprint.start_date, today),
       daily,
       difficulty: breakdown(problems, (p) => [p.difficulty ?? "Unrated"]),
-      subjects: breakdown(problems, (p) => [p.subject || "other"]),
+      subjects: breakdown(problems, (p) => [formatSubject(p.subject || "other")]),
       topics: breakdown(problems, (p) => p.topics),
       companies: breakdown(problems, (p) => p.companies),
     };
@@ -162,7 +210,7 @@ export function StatsDashboard({ id }: { id: string }) {
         <Tile icon={Star} label="To revisit" value={String(s.sum.starred)} sub="starred problems" />
       </div>
 
-      <Panel title="Activity — last 26 weeks"><Heatmap counts={s.heat} today={today} /></Panel>
+      <ActivityStrip counts={s.heat} today={today} years={s.years} />
 
       <Panel title="Solved per day — last 30 days">
         <ChartContainer config={chartConfig} className="h-48 w-full">

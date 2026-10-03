@@ -2,9 +2,8 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { format, subDays } from "date-fns";
-import { mkProblem } from "@/test/fixtures/problems";
+import { mkProblem, mkSprint } from "@/test/fixtures/problems";
 import { renderWithProviders } from "@/test/render";
-import type { Sprint } from "@/lib/types";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -28,10 +27,7 @@ vi.mock("@/lib/api", () => api);
 import { SprintView } from "./sprint-view";
 
 // Day 1 was two days ago → today is Day 3.
-const sprint: Sprint = {
-  id: "s1", user_id: "u", title: "DSA Prep", start_date: format(subDays(new Date(), 2), "yyyy-MM-dd"),
-  skip_weekends: false, rest_days: [], created_at: new Date().toISOString(),
-};
+const sprint = mkSprint({ start_date: format(subDays(new Date(), 2), "yyyy-MM-dd") });
 const problems = [
   mkProblem({ id: "a", name: "Linear Search", day_no: 1, original_day_no: 1, companies: ["Zoho"], done_at: "2026-10-01T10:00:00Z" }),
   mkProblem({ id: "b", name: "Largest Element", day_no: 1, original_day_no: 1, companies: ["Google"] }),

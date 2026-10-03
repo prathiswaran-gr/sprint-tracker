@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Compass, Plus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +13,16 @@ export function SprintNav({ onNavigate }: { onNavigate?: () => void }) {
   const path = usePathname();
   return (
     <nav className="flex flex-col gap-0.5">
+      <Link
+        href="/app/explore"
+        onClick={onNavigate}
+        className={cn(
+          "mb-3 flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent",
+          (path.startsWith("/app/explore") || path.startsWith("/app/sheets")) && "bg-sidebar-accent font-medium",
+        )}
+      >
+        <Compass className="size-4 text-primary" /> Explore sheets
+      </Link>
       <div className="flex items-center justify-between px-2 pb-1.5">
         <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Sprints</span>
         <Link href="/app/import" onClick={onNavigate} className="rounded-md p-1 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" aria-label="New sprint">

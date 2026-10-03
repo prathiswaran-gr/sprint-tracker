@@ -1,7 +1,7 @@
 "use client";
 
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, Trash2 } from "lucide-react";
+import { CalendarIcon, Globe, Link2, Lock, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { useSessionUser } from "@/components/shell/session-user";
 import { deleteSprint, type SprintPatch } from "@/lib/api";
 import type { Sprint } from "@/lib/types";
 
@@ -37,13 +39,29 @@ function SettingsForm({ sprint, onDone, onSave }: { sprint: Sprint; onDone: () =
   const [start, setStart] = useState<string | null>(sprint.start_date);
   const [skipWeekends, setSkipWeekends] = useState(sprint.skip_weekends);
   const [rest, setRest] = useState<string[]>(sprint.rest_days);
+  const [isPublic, setIsPublic] = useState(sprint.visibility === "public");
+  const [description, setDescription] = useState(sprint.description);
+  const [showOwner, setShowOwner] = useState(sprint.show_owner);
+  const user = useSessionUser();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function save() {
     setBusy(true);
     try {
-      await onSave({ title: title.trim() || sprint.title, start_date: start, skip_weekends: skipWeekends, rest_days: [...rest].sort() });
+      await onSave({
+        title: title.trim() || sprint.title,
+        start_date: start,
+        skip_weekends: skipWeekends,
+        rest_days: [...rest].sort(),
+        visibility: isPublic ? "public" : "private",
+        description: description.trim(),
+        show_owner: showOwner,
+        // Snapshot the display name/avatar at publish time (never the email).
+        owner_name: user?.name ?? sprint.owner_name,
+        owner_avatar: user?.avatar ?? sprint.owner_avatar,
+        published_at: isPublic ? (sprint.published_at ?? new Date().toISOString()) : sprint.published_at,
+      });
       toast.success("Sprint updated");
       onDone();
     } finally {
@@ -117,6 +135,53 @@ function SettingsForm({ sprint, onDone, onSave }: { sprint: Sprint; onDone: () =
           <button onClick={() => setRest([])} className="justify-self-start text-xs text-muted-foreground hover:text-foreground">
             Clear {rest.length} rest day{rest.length > 1 ? "s" : ""}
           </button>
+        )}
+      </div>
+
+      <div className="grid gap-3 rounded-lg border p-3">
+        <label className="flex items-center justify-between gap-4">
+          <span className="flex items-start gap-2.5">
+            {isPublic ? <Globe className="mt-0.5 size-4 text-primary" /> : <Lock className="mt-0.5 size-4 text-muted-foreground" />}
+            <span>
+              <span className="block text-sm font-medium">Public sheet</span>
+              <span className="block text-xs text-muted-foreground">
+                Listed in Explore. Others can view the problems and copy the sheet — never your progress or notes.
+              </span>
+            </span>
+          </span>
+          <Switch checked={isPublic} onCheckedChange={setIsPublic} aria-label="Public sheet" />
+        </label>
+        {isPublic && (
+          <>
+            <div className="grid gap-1.5">
+              <Label htmlFor="sheet-description">Description</Label>
+              <Textarea
+                id="sheet-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={500}
+                placeholder="Who is this sheet for? What does it cover?"
+                className="min-h-20"
+              />
+            </div>
+            <label className="flex items-center justify-between gap-4">
+              <span className="text-sm">Show my name{user?.name ? ` (${user.name})` : ""}</span>
+              <Switch checked={showOwner} onCheckedChange={setShowOwner} aria-label="Show my name" />
+            </label>
+            {sprint.visibility === "public" && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-self-start"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(`${location.origin}/app/sheets/${sprint.id}`);
+                  toast.success("Link copied");
+                }}
+              >
+                <Link2 /> Copy share link
+              </Button>
+            )}
+          </>
         )}
       </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, FolderKanban, Moon, Plus, Zap } from "lucide-react";
+import { Check, Compass, FolderKanban, Moon, Plus, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -74,6 +74,9 @@ export function CommandPalette() {
             ))}
             <CommandItem onSelect={run(() => router.push("/app/import"))}>
               <Plus /> New sprint from xlsx
+            </CommandItem>
+            <CommandItem onSelect={run(() => router.push("/app/explore"))}>
+              <Compass /> Explore public sheets
             </CommandItem>
           </CommandGroup>
           <CommandGroup heading="Preferences">

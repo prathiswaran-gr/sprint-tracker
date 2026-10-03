@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { formatSubject } from "@/lib/format";
 import { DEFAULT_FILTERS, isFiltering, STATUSES, type Facet, type Filters } from "@/lib/filters";
 import { FacetSelect } from "./facet-select";
 import { SavedFilters } from "./saved-filters";
@@ -75,7 +76,7 @@ export function FilterBar({ filters, setFilters, facets, statusCounts, view, set
         <FacetSelect label="Topic" facets={facets.topics} value={filters.topics} onChange={(topics) => setFilters({ topics })} />
         <FacetSelect label="Difficulty" facets={facets.difficulties} value={filters.difficulties} onChange={(difficulties) => setFilters({ difficulties })} searchable={false} />
         {facets.subjects.length > 1 && (
-          <FacetSelect label="Subject" facets={facets.subjects} value={filters.subjects} onChange={(subjects) => setFilters({ subjects })} searchable={false} />
+          <FacetSelect label="Subject" facets={facets.subjects} value={filters.subjects} onChange={(subjects) => setFilters({ subjects })} searchable={false} format={formatSubject} />
         )}
         <Select value={filters.sort} onValueChange={(sort) => setFilters({ sort: sort as Filters["sort"] })}>
           <SelectTrigger size="sm" className="h-8 w-auto gap-1.5 rounded-lg">
