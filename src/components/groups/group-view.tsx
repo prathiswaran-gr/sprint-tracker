@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, Check, ChevronRight, Crown, Flame, LogOut, Search, Trash2, UserMinus } from "lucide-react";
+import { ArrowLeft, ChevronRight, Crown, Flame, LogOut, Search, Trash2, UserMinus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { DifficultyChip } from "@/components/sprint/chips";
 import { FacetSelect } from "@/components/sprint/facet-select";
 import { useSessionUser } from "@/components/shell/session-user";
@@ -22,7 +21,7 @@ import { problemKey, type LeaderboardRow } from "@/lib/groups";
 import type { GroupMember, Problem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CopyInvite } from "./group-button";
-import { MemberAvatar } from "./member-avatar";
+import { MemberAvatar, PeopleStack } from "./member-avatar";
 
 function Leaderboard({ board, total, me, isOwner, onRemove }: {
   board: LeaderboardRow[]; total: number; me?: string; isOwner: boolean; onRemove: (m: GroupMember) => void;
@@ -93,7 +92,7 @@ function Matrix({ problems, members, index, me }: {
     return next;
   });
 
-  const colTemplate = `minmax(14rem,1fr) repeat(${members.length}, 3rem)`;
+  const colTemplate = "minmax(0,1fr) 9rem";
 
   return (
     <section className="grid gap-3">
@@ -107,18 +106,11 @@ function Matrix({ problems, members, index, me }: {
         <FacetSelect label="Topic" facets={fx.topics} value={filters.topics} onChange={(topics) => set({ topics })} />
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border bg-card/30">
-        <div className="min-w-fit">
-          <div className="sticky top-0 z-10 grid items-end gap-0 border-b bg-background/90 backdrop-blur" style={{ gridTemplateColumns: colTemplate }}>
-            <span className="sticky left-0 bg-background/90 px-4 py-2 text-xs font-medium text-muted-foreground">Problem</span>
-            {members.map((m) => (
-              <Tooltip key={m.user_id}>
-                <TooltipTrigger asChild>
-                  <span className="flex justify-center py-2"><MemberAvatar member={m} className={cn("size-6", m.user_id === me && "ring-2 ring-primary")} /></span>
-                </TooltipTrigger>
-                <TooltipContent>{m.display_name}{m.user_id === me ? " (you)" : ""}</TooltipContent>
-              </Tooltip>
-            ))}
+      <div className="overflow-hidden rounded-2xl border bg-card/30">
+        <div>
+          <div className="sticky top-0 z-10 grid items-center border-b bg-background/90 text-xs font-medium text-muted-foreground backdrop-blur" style={{ gridTemplateColumns: colTemplate }}>
+            <span className="px-4 py-2">Problem</span>
+            <span className="px-4 py-2 text-right">Completed by</span>
           </div>
 
           {sprints.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">No problems match.</p>}
@@ -126,7 +118,7 @@ function Matrix({ problems, members, index, me }: {
             const isOpen = expandAll || open.has(sprint);
             return (
               <div key={sprint} className="border-b last:border-b-0">
-                <button onClick={() => toggle(sprint)} aria-expanded={isOpen} className="sticky left-0 flex items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold hover:text-primary">
+                <button onClick={() => toggle(sprint)} aria-expanded={isOpen} className="flex items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold hover:text-primary">
                   <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", isOpen && "rotate-90")} />
                   Sprint {sprint}
                   <span className="text-xs font-normal text-muted-foreground">{ps.length} problems</span>
@@ -135,7 +127,7 @@ function Matrix({ problems, members, index, me }: {
                   const done = index.get(problemKey(p));
                   return (
                     <div key={p.id} className="grid items-center border-t border-border/50 hover:bg-muted/30" style={{ gridTemplateColumns: colTemplate }}>
-                      <span className="sticky left-0 flex min-w-0 items-center gap-2 bg-background/80 px-4 py-2 backdrop-blur">
+                      <span className="flex min-w-0 items-center gap-2 px-4 py-2">
                         <span className="w-9 shrink-0 text-[11px] text-muted-foreground tabular-nums">D{p.original_day_no}</span>
                         {p.url ? (
                           <a href={p.url} target="_blank" rel="noreferrer" className="truncate text-sm hover:text-primary hover:underline">{p.name}</a>
@@ -144,20 +136,13 @@ function Matrix({ problems, members, index, me }: {
                         )}
                         <DifficultyChip difficulty={p.difficulty} className="shrink-0" />
                       </span>
-                      {members.map((m) => {
-                        const at = done?.get(m.user_id);
-                        return (
-                          <span key={m.user_id} className="flex justify-center" aria-label={`${m.display_name}: ${at ? "done" : "not done"}`}>
-                            {at ? (
-                              <span title={new Date(at).toLocaleDateString()} className="inline-flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                                <Check className="size-3" />
-                              </span>
-                            ) : (
-                              <span className="size-1.5 rounded-full bg-muted-foreground/25" />
-                            )}
-                          </span>
-                        );
-                      })}
+                      <span className="flex justify-end px-3">
+                        <PeopleStack
+                          done={members.filter((m) => done?.has(m.user_id)).map((member) => ({ member, doneAt: done!.get(member.user_id)! }))}
+                          pending={members.filter((m) => !done?.has(m.user_id))}
+                          me={me}
+                        />
+                      </span>
                     </div>
                   );
                 })}

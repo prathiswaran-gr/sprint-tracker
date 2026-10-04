@@ -17,6 +17,7 @@ import { formatDuration } from "@/lib/duration";
 import { applyFilters, DEFAULT_FILTERS, facets as getFacets, isFiltering, type Filters } from "@/lib/filters";
 import type { Problem, PublicProblem } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { EditSheetButton } from "./edit-sheet-dialog";
 import { DifficultyBar, MaangCoverage, OtherCompanies, OwnerLine } from "./sheet-meta";
 
 // Reuse the sprint filter/sort logic by giving catalogue rows empty progress.
@@ -149,6 +150,8 @@ function Catalogue({ problems }: { problems: Problem[] }) {
 
 export function PublicSheetView({ id }: { id: string }) {
   const { data, isLoading, error } = useQuery({ queryKey: ["public-sheet", id], queryFn: () => getPublicSheet(id) });
+  const { data: mine } = useSprints();
+  const isOwner = Boolean(mine?.some((s) => s.id === id));
   const problems = useMemo(() => (data?.problems ?? []).map(asProblem), [data]);
 
   if (isLoading) {
@@ -180,7 +183,10 @@ export function PublicSheetView({ id }: { id: string }) {
       <header className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-primary/15 via-card/60 to-card/30 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{sheet.title}</h1>
+            <div className="flex items-center gap-1">
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{sheet.title}</h1>
+              {isOwner && <EditSheetButton sheet={sheet} />}
+            </div>
             <OwnerLine sheet={sheet} className="mt-2" />
             {sheet.description && <p className="mt-3 max-w-2xl text-sm text-pretty text-muted-foreground">{sheet.description}</p>}
           </div>

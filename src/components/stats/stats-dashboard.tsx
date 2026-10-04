@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSprint } from "@/hooks/use-sprint";
-import { monthWeeks, periodMonths, periodStats, yearOptions, type Period } from "@/lib/calendar";
+import { monthWeeks, periodMonths, periodStats, yearOptions } from "@/lib/calendar";
 import { formatSubject } from "@/lib/format";
 import { currentPlanDay } from "@/lib/schedule";
 import { breakdown, heatmap, streaks, summary, toLocalDate } from "@/lib/stats";
@@ -69,28 +69,28 @@ function BreakdownBars({ rows, limit = 8 }: { rows: { key: string; total: number
 const LEVELS = ["bg-muted", "bg-primary/30", "bg-primary/55", "bg-primary/80", "bg-primary"];
 
 function ActivityStrip({ counts, today, years }: { counts: Map<string, number>; today: string; years: number[] }) {
-  const [period, setPeriod] = useState<Period>("current");
-  const months = periodMonths(period, today);
-  const from = format(new Date(months[0].year, months[0].month, 1), "yyyy-MM-dd");
-  const last = months.at(-1)!;
-  const to = format(new Date(last.year, last.month + 1, 0), "yyyy-MM-dd");
-  const stats = periodStats(counts, from, to);
+  const thisYear = Number(today.slice(0, 4));
+  const [year, setYear] = useState(thisYear);
+  const months = periodMonths(year);
+  const stats = periodStats(counts, `${year}-01-01`, `${year}-12-31`);
   const max = Math.max(1, ...counts.values());
   const level = (n: number) => (n === 0 ? 0 : Math.min(4, Math.ceil((n / max) * 4)));
 
-  // Show the latest month first on narrow screens.
+  // On narrow screens, bring the current month into view (or January for past years).
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollLeft = el.scrollWidth;
-  }, [period]);
+    if (!el) return;
+    const target = year === thisYear ? el.querySelector<HTMLElement>(`[data-month="${Number(today.slice(5, 7)) - 1}"]`) : null;
+    el.scrollLeft = target ? target.offsetLeft - el.clientWidth / 2 + target.clientWidth / 2 : 0;
+  }, [year, thisYear, today]);
 
   return (
     <section className="rounded-2xl border bg-card/40 p-5">
       <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-3">
         <h2 className="flex items-center gap-1.5 text-base">
           <span className="text-xl font-semibold tabular-nums">{stats.total}</span>
-          <span className="text-muted-foreground">solved {period === "current" ? "in the past one year" : `in ${period}`}</span>
+          <span className="text-muted-foreground">solved in {year}</span>
           <Tooltip>
             <TooltipTrigger asChild>
               <Info className="size-3.5 text-muted-foreground" aria-label="About this chart" />
@@ -101,10 +101,9 @@ function ActivityStrip({ counts, today, years }: { counts: Map<string, number>; 
         <div className="ml-auto flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
           <span>Total active days: <span className="font-medium text-foreground tabular-nums">{stats.activeDays}</span></span>
           <span>Max streak: <span className="font-medium text-foreground tabular-nums">{stats.maxStreak}</span></span>
-          <Select value={String(period)} onValueChange={(v) => setPeriod(v === "current" ? "current" : Number(v))}>
-            <SelectTrigger size="sm" className="w-auto" aria-label="Period"><SelectValue /></SelectTrigger>
+          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+            <SelectTrigger size="sm" className="w-auto" aria-label="Year"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="current">Current</SelectItem>
               {years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -114,19 +113,20 @@ function ActivityStrip({ counts, today, years }: { counts: Map<string, number>; 
       <div ref={scrollRef} className="overflow-x-auto pb-1">
         <div className="flex w-max gap-2.5">
           {months.map(({ year, month }) => (
-            <div key={`${year}-${month}`} className="flex flex-col items-center gap-1.5">
+            <div key={`${year}-${month}`} data-month={month} className="flex flex-col items-center gap-1.5">
               <div className="flex gap-[3px]">
                 {monthWeeks(year, month).map((week, w) => (
                   <div key={w} className="flex flex-col gap-[3px]">
                     {week.map((d, i) => {
-                      if (!d || d > today) return <span key={i} className="size-[11px]" />;
+                      if (!d) return <span key={i} className="size-[11px]" />;
                       const n = counts.get(d) ?? 0;
+                      const label = format(parseISO(d), "EEE, MMM d, yyyy");
                       return (
                         <Tooltip key={d}>
                           <TooltipTrigger asChild>
-                            <span className={cn("size-[11px] rounded-[2px]", LEVELS[level(n)], d === today && "ring-1 ring-foreground/60")} />
+                            <span data-date={d} className={cn("size-[11px] rounded-[2px]", LEVELS[level(n)])} />
                           </TooltipTrigger>
-                          <TooltipContent>{n} solved · {format(parseISO(d), "EEE, MMM d, yyyy")}</TooltipContent>
+                          <TooltipContent>{d > today ? `Upcoming · ${label}` : `${n} solved · ${label}`}</TooltipContent>
                         </Tooltip>
                       );
                     })}

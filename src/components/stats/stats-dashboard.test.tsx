@@ -21,17 +21,21 @@ describe("StatsDashboard", () => {
     });
     renderWithProviders(<StatsDashboard id="s1" />);
 
-    expect(await screen.findByText("solved in the past one year")).toBeInTheDocument();
-    const header = screen.getByText("solved in the past one year").parentElement!;
+    expect(await screen.findByText(`solved in ${thisYear}`)).toBeInTheDocument();
+    const header = screen.getByText(`solved in ${thisYear}`).parentElement!;
     expect(within(header).getByText("1")).toBeInTheDocument();
     expect(screen.getByText(/Total active days:/)).toHaveTextContent("Total active days: 1");
     expect(screen.getByText(/Max streak:/)).toHaveTextContent("Max streak: 1");
-    expect(screen.getByRole("combobox", { name: "Period" })).toHaveTextContent("Current");
+    expect(screen.getByRole("combobox", { name: "Year" })).toHaveTextContent(String(thisYear));
     expect(screen.getAllByText("Jan")).not.toHaveLength(0);
+    // Every day of the year gets a cell (future included), and today isn't outlined.
+    expect(document.body.querySelector(`[data-date="${thisYear}-12-31"]`)).not.toBeNull();
+    expect(document.body.querySelectorAll("[data-date]").length).toBeGreaterThanOrEqual(365);
+    expect(document.body.querySelector("[data-date].ring-1")).toBeNull();
     expect(screen.getByText("DSA")).toBeInTheDocument();
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("combobox", { name: "Period" }));
+    await user.click(screen.getByRole("combobox", { name: "Year" }));
     await user.click(await screen.findByRole("option", { name: String(thisYear - 1) }));
     expect(await screen.findByText(`solved in ${thisYear - 1}`)).toBeInTheDocument();
     expect(screen.getByText(/Total active days:/)).toHaveTextContent("Total active days: 0");

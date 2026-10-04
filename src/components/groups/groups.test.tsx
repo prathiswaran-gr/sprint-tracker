@@ -58,9 +58,21 @@ describe("GroupView", () => {
     ]);
     expect(within(ranks[0]).getByText("2/3")).toBeInTheDocument();
 
-    expect(await screen.findAllByLabelText("Eswaran: done")).toHaveLength(2);
-    expect(screen.getAllByLabelText("Prathis: done")).toHaveLength(1);
-    expect(screen.getAllByLabelText("Kavin: not done")).toHaveLength(3);
+    // One stacked "Completed by" cell per problem.
+    const twoSum = await screen.findByLabelText("Completed by Prathis, Eswaran");
+    expect(twoSum).toHaveTextContent("2/3");
+    expect(screen.getByLabelText("Completed by Eswaran")).toHaveTextContent("1/3");
+    expect(screen.getByLabelText("Not completed yet")).toHaveTextContent("0/3");
+
+    // Hovering lists who did it and who hasn't yet.
+    const user = userEvent.setup();
+    await user.hover(twoSum);
+    const list = await screen.findByText("Completed by 2 of 3");
+    const popover = list.parentElement!;
+    expect(within(popover).getByText("Eswaran")).toBeInTheDocument();
+    expect(within(popover).getByText("(you)")).toBeInTheDocument();
+    expect(within(popover).getByText("Not yet")).toBeInTheDocument();
+    expect(within(popover).getByText("Kavin")).toBeInTheDocument();
     expect((screen.getByLabelText("Invite link") as HTMLInputElement).value).toContain("/app/join/abc123");
   });
 

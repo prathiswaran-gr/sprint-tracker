@@ -18,14 +18,9 @@ describe("monthWeeks", () => {
 });
 
 describe("periodMonths", () => {
-  it("rolls the last 12 months up to the current one", () => {
-    const m = periodMonths("current", "2026-10-03");
-    expect(m[0]).toEqual({ year: 2025, month: 10 });
-    expect(m.at(-1)).toEqual({ year: 2026, month: 9 });
-    expect(m).toHaveLength(12);
-  });
   it("covers Jan–Dec for a year", () => {
-    const m = periodMonths(2025, "2026-10-03");
+    const m = periodMonths(2025);
+    expect(m).toHaveLength(12);
     expect(m[0]).toEqual({ year: 2025, month: 0 });
     expect(m.at(-1)).toEqual({ year: 2025, month: 11 });
   });

@@ -10,6 +10,7 @@ const api = vi.hoisted(() => ({
   getPublicSheet: vi.fn(),
   copyPublicSheet: vi.fn(async () => "copy-1"),
   listSprints: vi.fn(async () => [] as { id: string; copied_from: string | null }[]),
+  updateSprint: vi.fn(async () => {}),
 }));
 vi.mock("@/lib/api", () => api);
 
@@ -65,5 +66,25 @@ describe("PublicSheetView", () => {
     api.getPublicSheet.mockResolvedValue(null);
     renderWithProviders(<PublicSheetView id="pub1" />);
     expect(await screen.findByText("This sheet isn't available")).toBeInTheDocument();
+  });
+
+  it("lets only the owner rename the sheet", async () => {
+    const user = userEvent.setup();
+    api.listSprints.mockResolvedValue([{ id: "pub1", copied_from: null }]);
+    renderWithProviders(<PublicSheetView id="pub1" />);
+    await user.click(await screen.findByRole("button", { name: "Edit sheet name" }));
+    const name = screen.getByLabelText("Name");
+    await user.clear(name);
+    await user.type(name, "Blind 75+");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(api.updateSprint).toHaveBeenCalledWith("pub1", { title: "Blind 75+", description: "Arrays to DP in 20 sprints" }),
+    );
+  });
+
+  it("hides the edit control from non-owners", async () => {
+    renderWithProviders(<PublicSheetView id="pub1" />);
+    await screen.findByRole("heading", { name: "DSA Prep Sheet" });
+    expect(screen.queryByRole("button", { name: "Edit sheet name" })).not.toBeInTheDocument();
   });
 });

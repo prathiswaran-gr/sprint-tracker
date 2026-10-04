@@ -9,16 +9,9 @@ export function monthWeeks(year: number, monthIndex: number): (string | null)[][
   return Array.from({ length: slots.length / 7 }, (_, w) => slots.slice(w * 7, w * 7 + 7));
 }
 
-export type Period = "current" | number;
-
-/** The 12 months shown for a period: rolling (ending this month) or Jan–Dec of a year. */
-export function periodMonths(period: Period, today: string): { year: number; month: number }[] {
-  if (period !== "current") return Array.from({ length: 12 }, (_, month) => ({ year: period, month }));
-  const t = parseISO(today);
-  return Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(t.getFullYear(), t.getMonth() - 11 + i, 1);
-    return { year: d.getFullYear(), month: d.getMonth() };
-  });
+/** The 12 months (Jan–Dec) shown for a year. */
+export function periodMonths(year: number): { year: number; month: number }[] {
+  return Array.from({ length: 12 }, (_, month) => ({ year, month }));
 }
 
 /** Totals within [from, to] (yyyy-MM-dd, inclusive): problems solved, active days, longest run of active days. */
