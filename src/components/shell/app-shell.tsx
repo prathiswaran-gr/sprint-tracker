@@ -22,7 +22,7 @@ function Sidebar({ user, onNavigate }: { user: SessionUser; onNavigate?: () => v
       >
         <Search className="size-3.5" />
         <span className="flex-1 text-left">Search…</span>
-        <kbd className="rounded border bg-muted px-1.5 font-mono text-[10px]">⌘K</kbd>
+        <kbd className="rounded border bg-muted px-1.5 font-mono text-[10px]">⌘ K</kbd>
       </button>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <SprintNav onNavigate={onNavigate} />
