@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProgressRing } from "@/components/progress-ring";
+import { GroupButton } from "@/components/groups/group-button";
 import type { Sprint } from "@/lib/types";
 
 export interface HeaderStats {
@@ -66,6 +67,7 @@ export function SprintHeader({ sprint, stats, onSettings, onShift, onJumpToday }
               <Share2 />
             </Button>
           )}
+          <GroupButton sprintId={sprint.id} sprintTitle={sprint.title} />
           <Button variant="outline" size="sm" asChild className="rounded-lg">
             <Link href={`/app/s/${sprint.id}/stats`}><BarChart3 /> <span className="max-sm:hidden">Stats</span></Link>
           </Button>

@@ -9,6 +9,7 @@ import type { Filters } from "@/lib/filters";
 import type { Problem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CompanyTags, DifficultyChip, SubjectTag, Tag } from "./chips";
+import { PeersBadge } from "@/components/groups/member-avatar";
 import { ProblemActions } from "./problem-actions";
 import { NotesButton, ProblemName, StarButton } from "./problem-card";
 import { useSprintActions } from "./sprint-context";
@@ -78,7 +79,8 @@ export function TableView({ problems, onSort }: { problems: Problem[]; onSort: (
               <span className="flex min-w-0 items-center gap-1.5">
                 <ProblemName problem={p} />
                 <SubjectTag subject={p.subject} />
-                <span className="ml-auto flex shrink-0 items-center">
+                <span className="ml-auto flex shrink-0 items-center gap-0.5">
+                  <PeersBadge peers={a.peersFor(p)} />
                   <StarButton problem={p} />
                   <NotesButton problem={p} />
                   <ProblemActions problem={p} />

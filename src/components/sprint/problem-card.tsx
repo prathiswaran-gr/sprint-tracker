@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { Problem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { CompanyTags, DifficultyChip, SubjectTag, Tag } from "./chips";
+import { PeersBadge } from "@/components/groups/member-avatar";
 import { ProblemActions } from "./problem-actions";
 import { useSprintActions } from "./sprint-context";
 
@@ -100,7 +101,8 @@ export function ProblemCard({ problem, draggable = true }: { problem: Problem; d
           </span>
         </div>
       </div>
-      <div className="flex items-center">
+      <div className="flex items-center gap-0.5">
+        <PeersBadge peers={a.peersFor(problem)} />
         <StarButton problem={problem} />
         <NotesButton problem={problem} />
         <ProblemActions problem={problem} />

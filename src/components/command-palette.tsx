@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Compass, FolderKanban, Moon, Plus, Zap } from "lucide-react";
+import { Check, Compass, FolderKanban, Moon, Plus, Users, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -8,6 +8,7 @@ import {
   Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut,
 } from "@/components/ui/command";
 import { useAccent } from "@/hooks/use-accent";
+import { useMyGroups } from "@/hooks/use-groups";
 import { useSprints } from "@/hooks/use-sprints";
 import { ACCENTS, swatch } from "@/lib/accents";
 import { setPaletteOpen, usePaletteContext, usePaletteOpen } from "@/lib/palette-store";
@@ -19,6 +20,7 @@ export function CommandPalette() {
   const open = usePaletteOpen();
   const ctx = usePaletteContext();
   const { data: sprints } = useSprints();
+  const { data: groups } = useMyGroups();
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const [accent, setAccent] = useAccent({ syncToAccount: true });
@@ -78,6 +80,11 @@ export function CommandPalette() {
             <CommandItem onSelect={run(() => router.push("/app/explore"))}>
               <Compass /> Explore public sheets
             </CommandItem>
+            {groups?.map((g) => (
+              <CommandItem key={g.id} value={`group ${g.name} ${g.id}`} onSelect={run(() => router.push(`/app/groups/${g.id}`))}>
+                <Users /> Group: {g.name}
+              </CommandItem>
+            ))}
           </CommandGroup>
           <CommandGroup heading="Preferences">
             <CommandItem onSelect={run(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"))}>

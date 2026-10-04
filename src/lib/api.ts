@@ -1,5 +1,7 @@
 import { supabaseBrowser } from "@/lib/supabase/client";
-import type { Problem, ProblemInput, PublicProblem, PublicSheet, SavedFilter, Sprint } from "@/lib/types";
+import type {
+  Group, GroupMember, GroupPreview, GroupProgressRow, MyGroup, Problem, ProblemInput, PublicProblem, PublicSheet, SavedFilter, Sprint,
+} from "@/lib/types";
 
 const db = () => supabaseBrowser();
 const PAGE = 1000; // PostgREST default max rows
@@ -114,4 +116,50 @@ export async function getPublicSheet(id: string): Promise<{ sheet: PublicSheet; 
 /** Copies a public sheet into the caller's account; returns the new sprint id. */
 export async function copyPublicSheet(id: string): Promise<string> {
   return unwrap(await db().rpc("copy_public_sheet", { src: id })) as string;
+}
+
+export async function listMyGroups(): Promise<MyGroup[]> {
+  return unwrap(await db().rpc("my_groups")) as MyGroup[];
+}
+
+/** Group + roster, or null when you're not a member (RLS hides it). */
+export async function getGroup(id: string): Promise<{ group: Group; members: GroupMember[] } | null> {
+  const group = unwrap(await db().from("groups").select("*").eq("id", id).maybeSingle()) as Group | null;
+  if (!group) return null;
+  const members = unwrap(await db().from("group_members").select("*").eq("group_id", id).order("joined_at")) as GroupMember[];
+  return { group, members };
+}
+
+export async function groupPreview(code: string): Promise<GroupPreview | null> {
+  const rows = unwrap(await db().rpc("group_preview", { p_code: code })) as GroupPreview[];
+  return rows[0] ?? null;
+}
+
+export async function createGroup(sprintId: string, name: string, me: { name: string; avatar: string | null }): Promise<string> {
+  return unwrap(
+    await db().rpc("create_group", { p_sprint: sprintId, p_name: name, p_display_name: me.name, p_avatar: me.avatar }),
+  ) as string;
+}
+
+/** Joins via invite code; links `existingSprint` (a copy of the sheet) instead of copying when given. */
+export async function joinGroup(code: string, me: { name: string; avatar: string | null }, existingSprint?: string): Promise<string> {
+  return unwrap(
+    await db().rpc("join_group", { p_code: code, p_display_name: me.name, p_avatar: me.avatar, p_sprint: existingSprint ?? null }),
+  ) as string;
+}
+
+export async function groupProgress(groupId: string): Promise<GroupProgressRow[]> {
+  return unwrap(await db().rpc("group_progress", { p_group: groupId })) as GroupProgressRow[];
+}
+
+export async function leaveGroup(groupId: string) {
+  unwrap(await db().rpc("leave_group", { p_group: groupId }));
+}
+
+export async function removeMember(groupId: string, userId: string) {
+  unwrap(await db().rpc("remove_member", { p_group: groupId, p_user: userId }));
+}
+
+export async function deleteGroup(groupId: string) {
+  unwrap(await db().rpc("delete_group", { p_group: groupId }));
 }

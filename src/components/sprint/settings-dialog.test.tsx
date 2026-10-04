@@ -16,7 +16,7 @@ describe("SettingsDialog sharing", () => {
     const onSave = vi.fn(async () => {});
     render(
       <QueryClientProvider client={new QueryClient()}>
-        <SessionUserProvider value={{ name: "Prathis", email: "p@x.com", avatar: "https://img/p.png", accent: null }}>
+        <SessionUserProvider value={{ id: "u1", name: "Prathis", email: "p@x.com", avatar: "https://img/p.png", accent: null }}>
           <SettingsDialog sprint={mkSprint()} open onOpenChange={() => {}} onSave={onSave} />
         </SessionUserProvider>
       </QueryClientProvider>,

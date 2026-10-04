@@ -7,7 +7,10 @@ import { format } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSessionUser } from "@/components/shell/session-user";
 import { useFilters, useView } from "@/hooks/use-filters";
+import { useGroupForSprint, useGroupProgress } from "@/hooks/use-groups";
+import { problemKey } from "@/lib/groups";
 import { useShortcuts } from "@/hooks/use-shortcuts";
 import { useProblemMutations, useSprint } from "@/hooks/use-sprint";
 import { applyFilters, DEFAULT_FILTERS, facets as getFacets, isFiltering, matches, STATUSES, type Filters } from "@/lib/filters";
@@ -75,6 +78,19 @@ export function SprintView({ id }: { id: string }) {
 
   const focus = useCallback((p: Problem) => setFocusedId(p.id), []);
 
+  // Study group: who else completed each problem.
+  const me = useSessionUser()?.id;
+  const linkedGroup = useGroupForSprint(id);
+  const group = useGroupProgress(linkedGroup?.id);
+  const peersFor = useCallback(
+    (p: Problem) => {
+      const done = group.index.get(problemKey(p));
+      if (!done) return [];
+      return group.members.filter((m) => m.user_id !== me && done.has(m.user_id)).map((member) => ({ member, doneAt: done.get(member.user_id)! }));
+    },
+    [group.index, group.members, me],
+  );
+
   const moveToDay = useCallback(
     (p: Problem, day: number) => {
       if (p.day_no === day) return;
@@ -120,8 +136,9 @@ export function SprintView({ id }: { id: string }) {
       filters,
       dateFor,
       currentDay: cur?.day ?? null,
+      peersFor,
     }),
-    [m.toggleDone, m.toggleStar, moveToDay, focus, focusedId, filters, dateFor, cur],
+    [m.toggleDone, m.toggleStar, moveToDay, focus, focusedId, filters, dateFor, cur, peersFor],
   );
 
   // Keyboard navigation over the visible list.

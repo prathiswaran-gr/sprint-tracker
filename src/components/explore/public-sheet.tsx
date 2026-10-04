@@ -21,7 +21,7 @@ import { DifficultyBar, MaangCoverage, OtherCompanies, OwnerLine } from "./sheet
 
 // Reuse the sprint filter/sort logic by giving catalogue rows empty progress.
 const asProblem = (p: PublicProblem): Problem => ({
-  ...p, original_day_no: p.day_no, original_sprint_no: p.sprint_no, done_at: null, starred: false, notes: "",
+  ...p, original_day_no: p.day_no, original_sprint_no: p.sprint_no, source_id: null, done_at: null, starred: false, notes: "",
 });
 
 function UseSheetButton({ sheetId }: { sheetId: string }) {

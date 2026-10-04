@@ -10,6 +10,7 @@ Turn an `.xlsx` DSA prep sheet into a day-by-day sprint tracker. Sign in with Go
   - Drag problems between days, or use "Move to day…" on touch.
   - **Shift backlog** moves your earliest unfinished day to today and slides everything unfinished after it forward.
 - **Public sheets**: make a sprint public (Settings → Sharing). It then appears in **Explore** (`/app/explore`), and other signed-in users can view the problem list and **copy** it as their own sprint. Your progress and notes are never shared.
+- **Study groups**: start a group from any sprint (header → **Group**) and share the invite link. Each member gets their own copy of the sheet, and everyone sees who completed each problem: avatars on every problem card, a leaderboard, and a member-by-problem progress grid. Only done/not-done is shared; notes and stars stay private.
 - **Stats**: streaks, a 26-week heatmap, solved-per-day, and completion by difficulty, topic and company.
 - **Keyboard**: `⌘K` palette · `j/k` move · `x` done · `s` star · `n` notes · `o` open · `m` move · `/` search · `t` view · `g t` today.
 
@@ -21,7 +22,7 @@ Stack: Next.js 16 (App Router, Turbopack, `proxy.ts`), React 19, Tailwind v4, sh
 
 1. Create a project at <https://supabase.com/dashboard>.
 2. **SQL Editor**: run each file in [`supabase/migrations/`](supabase/migrations) **in filename order**:
-   `20260930000000_init.sql`, then `20261003000000_public_sheets.sql`.
+   `20260930000000_init.sql`, then `20261003000000_public_sheets.sql`, then `20261004000000_study_groups.sql`.
    With the Supabase CLI you can run `supabase link` and then `supabase db push` instead.
 3. **Project Settings → API**: copy the Project URL and the publishable (anon) key.
 

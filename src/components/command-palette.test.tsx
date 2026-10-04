@@ -6,7 +6,10 @@ import { mkProblem } from "@/test/fixtures/problems";
 import { renderWithProviders } from "@/test/render";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-vi.mock("@/lib/api", () => ({ listSprints: vi.fn(async () => [{ id: "s1", title: "DSA Prep", total: 2, done: 0 }]) }));
+vi.mock("@/lib/api", () => ({
+  listSprints: vi.fn(async () => [{ id: "s1", title: "DSA Prep", total: 2, done: 0 }]),
+  listMyGroups: vi.fn(async () => []),
+}));
 
 import { CommandPalette } from "./command-palette";
 

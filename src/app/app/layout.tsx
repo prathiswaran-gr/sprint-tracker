@@ -8,6 +8,7 @@ export default async function AppLayout({ children }: LayoutProps<"/app">) {
   if (!data.user) redirect("/");
   const meta = data.user.user_metadata ?? {};
   const user = {
+    id: data.user.id,
     email: data.user.email ?? "",
     name: meta.full_name ?? meta.name ?? data.user.email ?? "You",
     avatar: meta.avatar_url ?? meta.picture ?? null,

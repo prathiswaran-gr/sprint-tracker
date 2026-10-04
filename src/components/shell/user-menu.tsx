@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export interface SessionUser {
+  id: string;
   email: string;
   name: string;
   avatar: string | null;

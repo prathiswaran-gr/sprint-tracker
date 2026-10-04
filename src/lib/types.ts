@@ -17,6 +17,7 @@ export interface Problem extends ProblemInput {
   sprint_id: string;
   original_day_no: number;
   original_sprint_no: number | null;
+  source_id: string | null;
   done_at: string | null;
   starred: boolean;
   notes: string;
@@ -74,3 +75,52 @@ export type PublicProblem = Pick<
   Problem,
   "id" | "sprint_id" | "position" | "name" | "url" | "subject" | "difficulty" | "companies" | "topics" | "sprint_no" | "day_no"
 >;
+
+export interface Group {
+  id: string;
+  owner_id: string;
+  sprint_id: string;
+  name: string;
+  invite_code: string;
+  created_at: string;
+}
+
+export interface GroupMember {
+  group_id: string;
+  user_id: string;
+  sprint_id: string;
+  display_name: string;
+  avatar: string | null;
+  role: "owner" | "member";
+  joined_at: string;
+}
+
+/** Row of `my_groups()`: a group you belong to, with your linked sprint. */
+export interface MyGroup {
+  id: string;
+  name: string;
+  invite_code: string;
+  role: "owner" | "member";
+  sprint_id: string;
+  member_count: number;
+}
+
+/** Row of `group_preview(code)`. */
+export interface GroupPreview {
+  id: string;
+  name: string;
+  owner_name: string | null;
+  member_count: number;
+  sheet_title: string;
+  problem_count: number;
+  day_count: number;
+  my_sprint_id: string | null;
+  existing_copy_id: string | null;
+}
+
+/** Row of `group_progress(group)`: one completed problem for one member. */
+export interface GroupProgressRow {
+  user_id: string;
+  problem_key: string;
+  done_at: string;
+}

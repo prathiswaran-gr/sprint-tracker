@@ -1,15 +1,17 @@
 "use client";
 
-import { Compass, Plus } from "lucide-react";
+import { Compass, Plus, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMyGroups } from "@/hooks/use-groups";
 import { useSprints } from "@/hooks/use-sprints";
 import { cn } from "@/lib/utils";
 import { ProgressRing } from "@/components/progress-ring";
 
 export function SprintNav({ onNavigate }: { onNavigate?: () => void }) {
   const { data, isLoading } = useSprints();
+  const { data: groups } = useMyGroups();
   const path = usePathname();
   return (
     <nav className="flex flex-col gap-0.5">
@@ -49,6 +51,26 @@ export function SprintNav({ onNavigate }: { onNavigate?: () => void }) {
         );
       })}
       {data?.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground">No sprints yet.</p>}
+      {groups && groups.length > 0 && (
+        <>
+          <span className="mt-4 px-2 pb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">Groups</span>
+          {groups.map((g) => (
+            <Link
+              key={g.id}
+              href={`/app/groups/${g.id}`}
+              onClick={onNavigate}
+              className={cn(
+                "flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent",
+                path.startsWith(`/app/groups/${g.id}`) && "bg-sidebar-accent font-medium",
+              )}
+            >
+              <Users className="size-4 text-muted-foreground" />
+              <span className="min-w-0 flex-1 truncate">{g.name}</span>
+              <span className="text-xs text-muted-foreground tabular-nums">{g.member_count}</span>
+            </Link>
+          ))}
+        </>
+      )}
     </nav>
   );
 }

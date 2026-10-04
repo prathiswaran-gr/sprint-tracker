@@ -21,6 +21,10 @@ const api = vi.hoisted(() => ({
   createSavedFilter: vi.fn(),
   deleteSavedFilter: vi.fn(),
   deleteSprint: vi.fn(),
+  listMyGroups: vi.fn(async () => [] as unknown[]),
+  getGroup: vi.fn(),
+  groupProgress: vi.fn(async () => [] as unknown[]),
+  createGroup: vi.fn(),
 }));
 vi.mock("@/lib/api", () => api);
 
@@ -37,6 +41,7 @@ const problems = [
 
 beforeEach(() => {
   vi.clearAllMocks();
+  api.listMyGroups.mockResolvedValue([]);
   api.getSprint.mockResolvedValue({ sprint, problems: structuredClone(problems) });
 });
 
@@ -91,5 +96,21 @@ describe("SprintView", () => {
     await user.keyboard("jj");
     await user.keyboard("x");
     await waitFor(() => expect(api.updateProblem).toHaveBeenCalledWith("b", { done_at: expect.any(String) }));
+  });
+
+  it("shows which group members completed each problem", async () => {
+    const member = (user_id: string, display_name: string) => ({
+      group_id: "g1", user_id, sprint_id: `s-${user_id}`, display_name, avatar: null, role: "member", joined_at: "2026-10-01T00:00:00Z",
+    });
+    api.listMyGroups.mockResolvedValue([{ id: "g1", name: "Prep squad", invite_code: "abc", role: "owner", sprint_id: "s1", member_count: 2 }]);
+    api.getGroup.mockResolvedValue({
+      group: { id: "g1", owner_id: "me", sprint_id: "s1", name: "Prep squad", invite_code: "abc", created_at: "" },
+      members: [member("me", "Me"), member("e", "Eswaran")],
+    });
+    api.groupProgress.mockResolvedValue([{ user_id: "e", problem_key: "c", done_at: "2026-10-03T10:00:00Z" }]);
+
+    renderWithProviders(<SprintView id="s1" />);
+    expect(await screen.findByLabelText("Completed by Eswaran")).toBeInTheDocument();
+    expect(screen.getAllByLabelText(/Completed by/)).toHaveLength(1);
   });
 });
