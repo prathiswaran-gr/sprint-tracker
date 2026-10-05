@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, ChevronRight, Crown, Flame, LogOut, Search, Trash2, UserMinus } from "lucide-react";
+import { ArrowLeft, Bell, Check, ChevronRight, Crown, Flame, LogOut, Search, Trash2, UserMinus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -13,18 +13,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DifficultyChip } from "@/components/sprint/chips";
 import { FacetSelect } from "@/components/sprint/facet-select";
 import { useSessionUser } from "@/components/shell/session-user";
-import { useGroupProgress } from "@/hooks/use-groups";
+import { useGroupActivity, useGroupProgress, useToggleReaction } from "@/hooks/use-groups";
 import { useSprint } from "@/hooks/use-sprint";
-import { deleteGroup, leaveGroup, removeMember } from "@/lib/api";
+import { deleteGroup, leaveGroup, removeMember, sendNudge } from "@/lib/api";
 import { applyFilters, DEFAULT_FILTERS, facets as getFacets, isFiltering, type Filters } from "@/lib/filters";
 import { problemKey, type LeaderboardRow } from "@/lib/groups";
 import type { GroupMember, Problem } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ActivityFeed } from "./activity-feed";
 import { CopyInvite } from "./group-button";
 import { MemberAvatar, PeopleStack } from "./member-avatar";
 
-function Leaderboard({ board, total, me, isOwner, onRemove }: {
-  board: LeaderboardRow[]; total: number; me?: string; isOwner: boolean; onRemove: (m: GroupMember) => void;
+function Leaderboard({ board, total, me, isOwner, nudged, onRemove, onNudge }: {
+  board: LeaderboardRow[]; total: number; me?: string; isOwner: boolean; nudged: Set<string>;
+  onRemove: (m: GroupMember) => void; onNudge: (m: GroupMember) => void;
 }) {
   return (
     <section className="overflow-hidden rounded-2xl border bg-card/40">
@@ -56,6 +58,19 @@ function Leaderboard({ board, total, me, isOwner, onRemove }: {
               <span className={cn("flex w-10 items-center justify-end gap-0.5 text-sm tabular-nums", r.streak ? "text-core" : "text-muted-foreground/50")} title="Current streak">
                 <Flame className="size-3.5" /> {r.streak}
               </span>
+              {r.member.user_id !== me && r.doneToday === 0 && (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-muted-foreground"
+                  disabled={nudged.has(r.member.user_id)}
+                  onClick={() => onNudge(r.member)}
+                  aria-label={`${nudged.has(r.member.user_id) ? "Nudged" : "Nudge"} ${r.member.display_name}`}
+                  title={nudged.has(r.member.user_id) ? "Nudge sent" : "Nudge to get going today"}
+                >
+                  {nudged.has(r.member.user_id) ? <Check /> : <Bell />}
+                </Button>
+              )}
               {isOwner && r.member.user_id !== me && (
                 <Button variant="ghost" size="icon-xs" className="text-muted-foreground opacity-0 group-hover:opacity-100 max-md:opacity-100" onClick={() => onRemove(r.member)} aria-label={`Remove ${r.member.display_name}`}>
                   <UserMinus />
@@ -160,6 +175,9 @@ export function GroupView({ id }: { id: string }) {
   const qc = useQueryClient();
   const me = useSessionUser()?.id;
   const g = useGroupProgress(id);
+  const activity = useGroupActivity(id, me);
+  const clap = useToggleReaction(id, me);
+  const [nudged, setNudged] = useState<Set<string>>(new Set());
   const mySprintId = g.members.find((m) => m.user_id === me)?.sprint_id;
   const sprint = useSprint(mySprintId ?? "");
   const isOwner = g.group?.owner_id === me;
@@ -174,6 +192,8 @@ export function GroupView({ id }: { id: string }) {
     qc.invalidateQueries({ queryKey: ["groups"] }),
     qc.invalidateQueries({ queryKey: ["group", id] }),
     qc.invalidateQueries({ queryKey: ["group-progress", id] }),
+    qc.invalidateQueries({ queryKey: ["group-activity", id] }),
+    qc.invalidateQueries({ queryKey: ["group-reactions", id] }),
   ]);
   const action = useMutation({
     mutationFn: (fn: () => Promise<void>) => fn(),
@@ -259,6 +279,14 @@ export function GroupView({ id }: { id: string }) {
         total={total}
         me={me}
         isOwner={isOwner}
+        nudged={nudged}
+        onNudge={(m) =>
+          action.mutate(async () => {
+            await sendNudge(id, m.user_id);
+            setNudged((s) => new Set(s).add(m.user_id));
+            toast.success(`Nudged ${m.display_name}`);
+          })
+        }
         onRemove={(m) => {
           if (!confirm(`Remove ${m.display_name} from the group?`)) return;
           action.mutate(async () => {
@@ -267,6 +295,13 @@ export function GroupView({ id }: { id: string }) {
             toast.success(`${m.display_name} removed`);
           });
         }}
+      />
+
+      <ActivityFeed
+        items={activity.items}
+        members={g.members}
+        me={me}
+        onClap={(item) => clap.mutate({ target: item.user_id, day: item.day })}
       />
 
       {sprint.data && <Matrix problems={sprint.data.problems} members={columns} index={g.index} me={me} />}

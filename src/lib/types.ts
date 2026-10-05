@@ -124,3 +124,27 @@ export interface GroupProgressRow {
   problem_key: string;
   done_at: string;
 }
+
+/** Row of `group_activity(group)`: one problem a member completed recently. */
+export interface GroupActivityRow {
+  user_id: string;
+  problem_name: string;
+  done_at: string;
+}
+
+/** A 👏 from `reactor` on `target_user`'s solves for `day` (yyyy-MM-dd). */
+export interface GroupReaction {
+  group_id: string;
+  target_user: string;
+  day: string;
+  reactor: string;
+}
+
+/** Row of `my_nudges()`. */
+export interface MyNudge {
+  id: string;
+  group_id: string;
+  group_name: string;
+  sender_name: string;
+  created_at: string;
+}

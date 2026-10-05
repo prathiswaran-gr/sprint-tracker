@@ -1,6 +1,7 @@
 import { supabaseBrowser } from "@/lib/supabase/client";
 import type {
-  Group, GroupMember, GroupPreview, GroupProgressRow, MyGroup, Problem, ProblemInput, PublicProblem, PublicSheet, SavedFilter, Sprint,
+  Group, GroupActivityRow, GroupMember, GroupPreview, GroupProgressRow, GroupReaction, MyGroup, MyNudge, Problem, ProblemInput, PublicProblem,
+  PublicSheet, SavedFilter, Sprint,
 } from "@/lib/types";
 
 const db = () => supabaseBrowser();
@@ -150,6 +151,33 @@ export async function joinGroup(code: string, me: { name: string; avatar: string
 
 export async function groupProgress(groupId: string): Promise<GroupProgressRow[]> {
   return unwrap(await db().rpc("group_progress", { p_group: groupId })) as GroupProgressRow[];
+}
+
+/** What members completed in the last week: names and times only. */
+export async function groupActivity(groupId: string): Promise<GroupActivityRow[]> {
+  return unwrap(await db().rpc("group_activity", { p_group: groupId })) as GroupActivityRow[];
+}
+
+export async function groupReactions(groupId: string, sinceDay: string): Promise<GroupReaction[]> {
+  const q = db().from("group_reactions").select("group_id, target_user, day, reactor").eq("group_id", groupId).gte("day", sinceDay);
+  return unwrap(await q) as GroupReaction[];
+}
+
+/** Clap for a member's day, or take the clap back. */
+export async function toggleReaction(groupId: string, targetUser: string, day: string) {
+  unwrap(await db().rpc("toggle_reaction", { p_group: groupId, p_target: targetUser, p_day: day }));
+}
+
+export async function sendNudge(groupId: string, targetUser: string) {
+  unwrap(await db().rpc("send_nudge", { p_group: groupId, p_target: targetUser }));
+}
+
+export async function myNudges(): Promise<MyNudge[]> {
+  return unwrap(await db().rpc("my_nudges")) as MyNudge[];
+}
+
+export async function markNudgesSeen() {
+  unwrap(await db().rpc("mark_nudges_seen"));
 }
 
 export async function leaveGroup(groupId: string) {

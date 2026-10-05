@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { ThemeButton } from "@/components/theme-picker";
 import { AccentSync } from "./accent-sync";
+import { NudgeInbox } from "./nudge-inbox";
 import { SessionUserProvider } from "./session-user";
 import { SprintNav } from "./sprint-nav";
 import { UserMenu, type SessionUser } from "./user-menu";
@@ -29,6 +30,7 @@ function Sidebar({ user, onNavigate }: { user: SessionUser; onNavigate?: () => v
       </div>
       <div className="flex items-center gap-1">
         <div className="min-w-0 flex-1"><UserMenu user={user} /></div>
+        <NudgeInbox />
         <ThemeButton syncToAccount />
       </div>
     </div>
