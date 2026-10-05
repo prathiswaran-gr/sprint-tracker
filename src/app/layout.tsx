@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { VisitorAnalytics } from "@/components/analytics";
 import { Providers } from "@/components/providers";
 import { accentInitScript, DEFAULT_ACCENT } from "@/lib/accents";
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <Providers>{children}</Providers>
         <VisitorAnalytics />
+        <SpeedInsights />
       </body>
     </html>
   );
