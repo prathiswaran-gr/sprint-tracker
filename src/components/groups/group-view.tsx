@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DifficultyChip } from "@/components/sprint/chips";
@@ -178,6 +179,10 @@ export function GroupView({ id }: { id: string }) {
   const activity = useGroupActivity(id, me);
   const clap = useToggleReaction(id, me);
   const [nudged, setNudged] = useState<Set<string>>(new Set());
+  // Kept after close so the dialog's copy doesn't blank out mid-animation.
+  const [confirming, setConfirming] = useState<{ kind: "delete" } | { kind: "leave" } | { kind: "remove"; member: GroupMember } | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const ask = (c: NonNullable<typeof confirming>) => { setConfirming(c); setConfirmOpen(true); };
   const mySprintId = g.members.find((m) => m.user_id === me)?.sprint_id;
   const sprint = useSprint(mySprintId ?? "");
   const isOwner = g.group?.owner_id === me;
@@ -220,6 +225,41 @@ export function GroupView({ id }: { id: string }) {
   }
 
   const total = sprint.data?.problems.length ?? 0;
+  const backToSprint = () => router.push(mySprintId ? `/app/s/${mySprintId}` : "/app");
+  const confirmCopy = !confirming ? null
+    : confirming.kind === "remove" ? {
+      icon: <UserMinus />,
+      title: `Remove ${confirming.member.display_name}?`,
+      description: "They'll lose access to this group. Their sprint and progress stay with them.",
+      confirmLabel: "Remove",
+      run: async () => {
+        await removeMember(id, confirming.member.user_id);
+        await refresh();
+        toast.success(`${confirming.member.display_name} removed`);
+      },
+    } : confirming.kind === "delete" ? {
+      icon: <Trash2 />,
+      title: "Delete this group?",
+      description: "Everyone keeps their own sprint and progress. This can't be undone.",
+      confirmLabel: "Delete group",
+      run: async () => {
+        await deleteGroup(id);
+        await refresh();
+        toast.success("Group deleted");
+        backToSprint();
+      },
+    } : {
+      icon: <LogOut />,
+      title: "Leave this group?",
+      description: "Your sprint and progress stay with you. You'll need a new invite link to rejoin.",
+      confirmLabel: "Leave",
+      run: async () => {
+        await leaveGroup(id);
+        await refresh();
+        toast.success("You left the group");
+        backToSprint();
+      },
+    };
 
   return (
     <div className="mx-auto grid max-w-5xl gap-6 p-4 sm:p-8">
@@ -236,34 +276,11 @@ export function GroupView({ id }: { id: string }) {
             <p className="mt-1 text-sm text-muted-foreground">{g.members.length} member{g.members.length === 1 ? "" : "s"} · {total} problems</p>
           </div>
           {isOwner ? (
-            <Button
-              variant="ghost"
-              className="text-destructive"
-              onClick={() => {
-                if (!confirm("Delete this group? Everyone keeps their own sprint and progress.")) return;
-                action.mutate(async () => {
-                  await deleteGroup(id);
-                  await refresh();
-                  toast.success("Group deleted");
-                  router.push(mySprintId ? `/app/s/${mySprintId}` : "/app");
-                });
-              }}
-            >
+            <Button variant="ghost" className="text-destructive" onClick={() => ask({ kind: "delete" })}>
               <Trash2 /> Delete group
             </Button>
           ) : (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                if (!confirm("Leave this group? Your sprint and progress stay with you.")) return;
-                action.mutate(async () => {
-                  await leaveGroup(id);
-                  await refresh();
-                  toast.success("You left the group");
-                  router.push(mySprintId ? `/app/s/${mySprintId}` : "/app");
-                });
-              }}
-            >
+            <Button variant="ghost" onClick={() => ask({ kind: "leave" })}>
               <LogOut /> Leave
             </Button>
           )}
@@ -287,14 +304,19 @@ export function GroupView({ id }: { id: string }) {
             toast.success(`Nudged ${m.display_name}`);
           })
         }
-        onRemove={(m) => {
-          if (!confirm(`Remove ${m.display_name} from the group?`)) return;
-          action.mutate(async () => {
-            await removeMember(id, m.user_id);
-            await refresh();
-            toast.success(`${m.display_name} removed`);
-          });
-        }}
+        onRemove={(member) => ask({ kind: "remove", member })}
+      />
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={confirmCopy?.title ?? ""}
+        description={confirmCopy?.description}
+        confirmLabel={confirmCopy?.confirmLabel ?? ""}
+        icon={confirmCopy?.icon}
+        destructive
+        pending={action.isPending}
+        onConfirm={() => confirmCopy && action.mutate(confirmCopy.run, { onSuccess: () => setConfirmOpen(false) })}
       />
 
       <ActivityFeed

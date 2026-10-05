@@ -177,6 +177,57 @@ describe("Nudges", () => {
   });
 });
 
+describe("Confirmations", () => {
+  it("asks before removing a member, then removes them", async () => {
+    api.removeMember.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderWithProviders(withUser(<GroupView id="g1" />));
+    await user.click(await screen.findByRole("button", { name: "Remove Kavin" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Remove Kavin?" });
+    expect(api.removeMember).not.toHaveBeenCalled();
+    await user.click(within(dialog).getByRole("button", { name: "Remove" }));
+
+    expect(api.removeMember).toHaveBeenCalledWith("g1", "k");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("does nothing when the removal is cancelled", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(withUser(<GroupView id="g1" />));
+    await user.click(await screen.findByRole("button", { name: "Remove Kavin" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(api.removeMember).not.toHaveBeenCalled();
+  });
+
+  it("asks before deleting the group", async () => {
+    api.deleteGroup.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderWithProviders(withUser(<GroupView id="g1" />));
+    await user.click(await screen.findByRole("button", { name: "Delete group" }));
+    await user.click(within(await screen.findByRole("dialog", { name: "Delete this group?" })).getByRole("button", { name: "Delete group" }));
+
+    expect(api.deleteGroup).toHaveBeenCalledWith("g1");
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/app/s/s-me"));
+  });
+
+  it("asks before leaving the group", async () => {
+    api.getGroup.mockResolvedValue({
+      group: { id: "g1", owner_id: "e", sprint_id: "s-e", name: "Prep squad", invite_code: "abc123", created_at: "" },
+      members: [member("me", "Prathis"), member("e", "Eswaran", "owner")],
+    });
+    api.leaveGroup.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderWithProviders(withUser(<GroupView id="g1" />));
+    await user.click(await screen.findByRole("button", { name: "Leave" }));
+    await user.click(within(await screen.findByRole("dialog", { name: "Leave this group?" })).getByRole("button", { name: "Leave" }));
+
+    expect(api.leaveGroup).toHaveBeenCalledWith("g1");
+  });
+});
+
 describe("JoinGroup", () => {
   const preview = {
     id: "g1", name: "Prep squad", owner_name: "Prathis", member_count: 2, sheet_title: "DSA Prep",
