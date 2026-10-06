@@ -76,11 +76,18 @@ function CatalogueRow({ p, highlight }: { p: Problem; highlight: string[] }) {
 
 function Catalogue({ problems }: { problems: Problem[] }) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [open, setOpen] = useState<Set<number>>(new Set([problems[0]?.sprint_no]));
+  const [overrides, setOverrides] = useState<Map<number, boolean>>(new Map());
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
   const filtered = useMemo(() => applyFilters(problems, filters), [problems, filters]);
   const fx = useMemo(() => getFacets(problems), [problems]);
   const expandAll = isFiltering(filters);
+
+  // Starting or clearing a filter resets hand toggles so filtered matches start expanded.
+  const [prevExpandAll, setPrevExpandAll] = useState(expandAll);
+  if (prevExpandAll !== expandAll) {
+    setPrevExpandAll(expandAll);
+    setOverrides(new Map());
+  }
 
   const groups = useMemo(() => {
     const bySprint = new Map<number, Map<number, Problem[]>>();
@@ -96,12 +103,8 @@ function Catalogue({ problems }: { problems: Problem[] }) {
     }));
   }, [filtered]);
 
-  const toggle = (n: number) => setOpen((s) => {
-    const next = new Set(s);
-    if (next.has(n)) next.delete(n);
-    else next.add(n);
-    return next;
-  });
+  const isOpenFor = (n: number) => overrides.get(n) ?? (expandAll || n === problems[0]?.sprint_no);
+  const toggle = (n: number) => setOverrides((m) => new Map(m).set(n, !isOpenFor(n)));
 
   return (
     <section className="grid gap-4">
@@ -122,7 +125,7 @@ function Catalogue({ problems }: { problems: Problem[] }) {
 
       {groups.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">No problems match.</p>}
       {groups.map((g) => {
-        const isOpen = expandAll || open.has(g.sprint);
+        const isOpen = isOpenFor(g.sprint);
         return (
           <div key={g.sprint} className="overflow-hidden rounded-2xl border bg-card/30">
             <button onClick={() => toggle(g.sprint)} aria-expanded={isOpen} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/40">

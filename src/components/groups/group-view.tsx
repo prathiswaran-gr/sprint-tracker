@@ -89,11 +89,18 @@ function Matrix({ problems, members, index, me }: {
   problems: Problem[]; members: GroupMember[]; index: Map<string, Map<string, string>>; me?: string;
 }) {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [open, setOpen] = useState<Set<number>>(new Set([problems[0]?.sprint_no]));
+  const [overrides, setOverrides] = useState<Map<number, boolean>>(new Map());
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
   const filtered = useMemo(() => applyFilters(problems, { ...filters, status: "all" }), [problems, filters]);
   const fx = useMemo(() => getFacets(problems), [problems]);
   const expandAll = isFiltering(filters);
+
+  // Starting or clearing a filter resets hand toggles so filtered matches start expanded.
+  const [prevExpandAll, setPrevExpandAll] = useState(expandAll);
+  if (prevExpandAll !== expandAll) {
+    setPrevExpandAll(expandAll);
+    setOverrides(new Map());
+  }
 
   const sprints = useMemo(() => {
     const m = new Map<number, Problem[]>();
@@ -101,12 +108,8 @@ function Matrix({ problems, members, index, me }: {
     return [...m].sort(([a], [b]) => a - b);
   }, [filtered]);
 
-  const toggle = (n: number) => setOpen((s) => {
-    const next = new Set(s);
-    if (next.has(n)) next.delete(n);
-    else next.add(n);
-    return next;
-  });
+  const isOpenFor = (n: number) => overrides.get(n) ?? (expandAll || n === problems[0]?.sprint_no);
+  const toggle = (n: number) => setOverrides((m) => new Map(m).set(n, !isOpenFor(n)));
 
   const colTemplate = "minmax(0,1fr) 9rem";
 
@@ -131,7 +134,7 @@ function Matrix({ problems, members, index, me }: {
 
           {sprints.length === 0 && <p className="py-10 text-center text-sm text-muted-foreground">No problems match.</p>}
           {sprints.map(([sprint, ps]) => {
-            const isOpen = expandAll || open.has(sprint);
+            const isOpen = isOpenFor(sprint);
             return (
               <div key={sprint} className="border-b last:border-b-0">
                 <button onClick={() => toggle(sprint)} aria-expanded={isOpen} className="flex items-center gap-2 px-4 py-2.5 text-left text-sm font-semibold hover:text-primary">

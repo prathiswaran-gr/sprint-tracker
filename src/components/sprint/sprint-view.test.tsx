@@ -77,6 +77,23 @@ describe("SprintView", () => {
     expect(screen.getByText("2 matches")).toBeInTheDocument();
   });
 
+  it("lets sprints and days collapse while filtering", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SprintView id="s1" />, { searchParams: "?companies=Amazon" });
+    await screen.findByText("Two Sum");
+
+    const day = await dayHeader(3);
+    await user.click(day);
+    expect(day).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Two Sum")).not.toBeInTheDocument();
+    expect(screen.getByText("Kadane's Algorithm")).toBeInTheDocument();
+
+    const sprintHeader = screen.getByRole("button", { name: /^Sprint 1(?!\d)/ });
+    await user.click(sprintHeader);
+    expect(sprintHeader).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Kadane's Algorithm")).not.toBeInTheDocument();
+  });
+
   it("shifts the backlog so the overdue day lands on today", async () => {
     const user = userEvent.setup();
     renderWithProviders(<SprintView id="s1" />);

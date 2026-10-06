@@ -99,9 +99,17 @@ export function TimelineView({ problems, expandAll, workingDay }: { problems: Pr
     if (focusedDay != null && dayOverrides.has(focusedDay)) setDayOverrides((m) => { const n = new Map(m); n.delete(focusedDay); return n; });
   }
 
-  const isOpenFor = (n: number) => expandAll || (overrides.get(n) ?? (n === defaultOpen || n === focusedSprint));
+  // Starting or clearing a filter resets hand toggles so filtered matches start expanded.
+  const [prevExpandAll, setPrevExpandAll] = useState(expandAll);
+  if (prevExpandAll !== expandAll) {
+    setPrevExpandAll(expandAll);
+    setOverrides(new Map());
+    setDayOverrides(new Map());
+  }
+
+  const isOpenFor = (n: number) => overrides.get(n) ?? (expandAll || n === defaultOpen || n === focusedSprint);
   const toggle = (n: number) => setOverrides((m) => new Map(m).set(n, !isOpenFor(n)));
-  const isDayOpen = (d: number) => expandAll || (dayOverrides.get(d) ?? (d === workingDay || d === focusedDay));
+  const isDayOpen = (d: number) => dayOverrides.get(d) ?? (expandAll || d === workingDay || d === focusedDay);
   const toggleDay = (d: number) => setDayOverrides((m) => new Map(m).set(d, !isDayOpen(d)));
 
   return (
