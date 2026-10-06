@@ -79,3 +79,25 @@ export function shiftBacklog(
     .filter((p) => !p.done_at && p.day_no >= d0)
     .map((p) => ({ id: p.id, day_no: p.day_no + delta, sprint_no: sprintFor(p.day_no + delta) }));
 }
+
+/**
+ * The plan day the user is actively working on: the next undone problem after their most recently
+ * completed one, so a skipped problem in an old sprint doesn't pin the view there.
+ * Falls back to the calendar day (nothing done yet), then the first undone problem.
+ */
+export function workingDay(problems: { day_no: number; done_at: string | null }[], currentDay: number | null): number | null {
+  if (!problems.length) return null;
+  const ordered = problems.map((p, i) => ({ p, i })).sort((a, b) => a.p.day_no - b.p.day_no || a.i - b.i).map(({ p }) => p);
+  const firstUndone = ordered.find((p) => !p.done_at);
+  if (!firstUndone) return ordered.at(-1)!.day_no;
+
+  let last = -1;
+  ordered.forEach((p, i) => {
+    if (p.done_at && (last === -1 || p.done_at > ordered[last].done_at!)) last = i;
+  });
+  if (last === -1) {
+    const calendar = currentDay == null ? undefined : ordered.find((p) => p.day_no >= currentDay);
+    return (calendar ?? firstUndone).day_no;
+  }
+  return (ordered.slice(last + 1).find((p) => !p.done_at) ?? firstUndone).day_no;
+}

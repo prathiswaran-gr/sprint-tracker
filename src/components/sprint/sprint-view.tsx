@@ -15,7 +15,7 @@ import { useShortcuts } from "@/hooks/use-shortcuts";
 import { useProblemMutations, useSprint } from "@/hooks/use-sprint";
 import { applyFilters, DEFAULT_FILTERS, facets as getFacets, isFiltering, matches, STATUSES, type Filters } from "@/lib/filters";
 import { setPaletteContext } from "@/lib/palette-store";
-import { buildCalendar, currentPlanDay, makeSprintForDay, shiftBacklog, type ScheduleConfig } from "@/lib/schedule";
+import { buildCalendar, currentPlanDay, makeSprintForDay, shiftBacklog, workingDay, type ScheduleConfig } from "@/lib/schedule";
 import type { Problem } from "@/lib/types";
 import { FilterBar } from "./filter-bar";
 import { MoveDialog } from "./move-dialog";
@@ -54,6 +54,7 @@ export function SprintView({ id }: { id: string }) {
   const dateFor = useCallback((d: number) => calendar?.[d - 1] ?? null, [calendar]);
   const cur = useMemo(() => currentPlanDay(cfg, format(new Date(), "yyyy-MM-dd")), [cfg]);
   const sprintFor = useMemo(() => makeSprintForDay(problems), [problems]);
+  const working = useMemo(() => workingDay(problems, cur?.day ?? null), [problems, cur]);
 
   const filtered = useMemo(() => applyFilters(problems, filters), [problems, filters]);
   const facets = useMemo(() => getFacets(problems), [problems]);
@@ -238,7 +239,7 @@ export function SprintView({ id }: { id: string }) {
           />
         ) : (
           <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setDragging(null)}>
-            <TimelineView problems={filtered} expandAll={isFiltering(filters)} />
+            <TimelineView problems={filtered} expandAll={isFiltering(filters)} workingDay={working} />
             <DragOverlay dropAnimation={null}>
               {dragging && <div className="rotate-1 opacity-90 shadow-2xl"><ProblemCard problem={dragging} draggable={false} /></div>}
             </DragOverlay>

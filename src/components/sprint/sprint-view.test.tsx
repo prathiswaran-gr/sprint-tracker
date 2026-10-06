@@ -39,6 +39,8 @@ const problems = [
   mkProblem({ id: "d", name: "Kadane's Algorithm", day_no: 5, original_day_no: 5, companies: ["Amazon"] }),
 ];
 
+const dayHeader = (day: number) => screen.findByRole("button", { name: new RegExp(`^Day ${day}(?!\\d)`) });
+
 beforeEach(() => {
   vi.clearAllMocks();
   api.listMyGroups.mockResolvedValue([]);
@@ -47,8 +49,10 @@ beforeEach(() => {
 
 describe("SprintView", () => {
   it("renders the timeline with today and overdue state", async () => {
+    const user = userEvent.setup();
     renderWithProviders(<SprintView id="s1" />);
     expect(await screen.findByRole("heading", { name: "DSA Prep" })).toBeInTheDocument();
+    await user.click(await dayHeader(3));
     expect(screen.getByText("Two Sum")).toBeInTheDocument();
     expect(screen.getByText("1 overdue")).toBeInTheDocument();
     expect(screen.getAllByText("Today").length).toBeGreaterThan(0);
@@ -58,6 +62,7 @@ describe("SprintView", () => {
   it("toggles done optimistically and persists", async () => {
     const user = userEvent.setup();
     renderWithProviders(<SprintView id="s1" />);
+    await user.click(await dayHeader(3));
     const box = await screen.findByRole("checkbox", { name: /Mark Two Sum done/ });
     await user.click(box);
     await waitFor(() => expect(api.updateProblem).toHaveBeenCalledWith("c", { done_at: expect.any(String) }));
@@ -92,7 +97,7 @@ describe("SprintView", () => {
   it("supports keyboard shortcuts: j to focus, x to toggle", async () => {
     const user = userEvent.setup();
     renderWithProviders(<SprintView id="s1" />);
-    await screen.findByText("Two Sum");
+    await screen.findByText("Largest Element");
     await user.keyboard("jj");
     await user.keyboard("x");
     await waitFor(() => expect(api.updateProblem).toHaveBeenCalledWith("b", { done_at: expect.any(String) }));
@@ -109,8 +114,56 @@ describe("SprintView", () => {
     });
     api.groupProgress.mockResolvedValue([{ user_id: "e", problem_key: "c", done_at: "2026-10-03T10:00:00Z" }]);
 
+    const user = userEvent.setup();
     renderWithProviders(<SprintView id="s1" />);
+    await user.click(await dayHeader(3));
     expect(await screen.findByLabelText("Completed by Eswaran")).toBeInTheDocument();
     expect(screen.getAllByLabelText(/Completed by/)).toHaveLength(1);
+  });
+
+  it("opens only the working day (next undone after the last completed) by default", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SprintView id="s1" />);
+    expect(await dayHeader(1)).toHaveAttribute("aria-expanded", "true");
+    expect(await dayHeader(3)).toHaveAttribute("aria-expanded", "false");
+    expect(await dayHeader(5)).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("Largest Element")).toBeInTheDocument();
+    expect(screen.queryByText("Two Sum")).not.toBeInTheDocument();
+
+    await user.click(await dayHeader(3));
+    expect(screen.getByText("Two Sum")).toBeInTheDocument();
+    await user.click(await dayHeader(1));
+    expect(screen.queryByText("Largest Element")).not.toBeInTheDocument();
+  });
+
+  it("opens the sprint holding the working day, not an earlier sprint with a skipped problem", async () => {
+    api.getSprint.mockResolvedValue({
+      sprint: mkSprint({ start_date: null }),
+      problems: [
+        mkProblem({ id: "a", name: "Skipped One", day_no: 1, original_day_no: 1, sprint_no: 1 }),
+        mkProblem({ id: "b", name: "Done Two", day_no: 8, original_day_no: 8, sprint_no: 2, done_at: "2026-10-02T10:00:00Z" }),
+        mkProblem({ id: "c", name: "Next Up", day_no: 9, original_day_no: 9, sprint_no: 2 }),
+      ],
+    });
+    renderWithProviders(<SprintView id="s1" />);
+    expect(await screen.findByText("Next Up")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Sprint 1(?!\d)/ })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: /^Sprint 2(?!\d)/ })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.queryByText("Done Two")).not.toBeInTheDocument();
+  });
+
+  it("expands every day while filtering", async () => {
+    renderWithProviders(<SprintView id="s1" />, { searchParams: "?companies=Amazon" });
+    expect(await dayHeader(3)).toHaveAttribute("aria-expanded", "true");
+    expect(await dayHeader(5)).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("opens a collapsed day when keyboard focus moves into it", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<SprintView id="s1" />);
+    await screen.findByText("Largest Element");
+    await user.keyboard("jjj");
+    expect(await screen.findByText("Two Sum")).toBeInTheDocument();
+    expect(await dayHeader(3)).toHaveAttribute("aria-expanded", "true");
   });
 });

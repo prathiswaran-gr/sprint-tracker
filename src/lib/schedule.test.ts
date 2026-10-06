@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentPlanDay, dayToDate, makeSprintForDay, shiftBacklog, type ScheduleConfig } from "./schedule";
+import { currentPlanDay, dayToDate, makeSprintForDay, shiftBacklog, workingDay, type ScheduleConfig } from "./schedule";
 
 // 2026-10-01 is a Thursday.
 const base: ScheduleConfig = { startDate: "2026-10-01", skipWeekends: false, restDays: [] };
@@ -75,5 +75,32 @@ describe("shiftBacklog", () => {
   });
   it("is a no-op with nothing overdue", () => {
     expect(shiftBacklog([p("a", 2, true), p("b", 5)], 5, sprintFor)).toEqual([]);
+  });
+});
+
+describe("workingDay", () => {
+  const p = (day_no: number, done_at: string | null = null) => ({ day_no, done_at });
+
+  it("picks the next undone problem after the most recently completed one", () => {
+    expect(workingDay([p(1, "2026-10-01T10:00Z"), p(2), p(3, "2026-10-03T10:00Z"), p(3), p(5)], 2)).toBe(3);
+  });
+  it("ignores a skipped problem in an earlier sprint", () => {
+    expect(workingDay([p(1), p(8, "2026-10-01T09:00Z"), p(9, "2026-10-02T09:00Z"), p(10)], 1)).toBe(10);
+  });
+  it("uses completion time, not position, to find the latest done problem", () => {
+    expect(workingDay([p(1), p(2, "2026-10-05T09:00Z"), p(3), p(4, "2026-10-01T09:00Z"), p(5)], null)).toBe(3);
+  });
+  it("wraps to the first undone problem when nothing is left after the latest", () => {
+    expect(workingDay([p(1), p(2, "2026-10-01T09:00Z"), p(3, "2026-10-02T09:00Z")], null)).toBe(1);
+  });
+  it("uses the calendar day when nothing is done yet", () => {
+    expect(workingDay([p(1), p(2), p(4), p(6)], 3)).toBe(4);
+  });
+  it("falls back to the first undone day without a start date", () => {
+    expect(workingDay([p(4), p(1), p(2)], null)).toBe(1);
+  });
+  it("returns the last day when everything is done, and null when empty", () => {
+    expect(workingDay([p(1, "a"), p(5, "b")], 2)).toBe(5);
+    expect(workingDay([], 2)).toBeNull();
   });
 });

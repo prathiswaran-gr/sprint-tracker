@@ -36,7 +36,7 @@ function group(problems: Problem[]): SprintGroup[] {
     });
 }
 
-function DaySection({ day, problems }: DayGroup) {
+function DaySection({ day, problems, isOpen, onToggle }: DayGroup & { isOpen: boolean; onToggle: () => void }) {
   const a = useSprintActions();
   const { setNodeRef, isOver } = useDroppable({ id: `day-${day}`, data: { day } });
   const date = a.dateFor(day);
@@ -50,7 +50,12 @@ function DaySection({ day, problems }: DayGroup) {
       id={`day-${day}`}
       className={cn("scroll-mt-28 rounded-2xl p-2 transition-colors", isOver && "bg-primary/10 ring-2 ring-primary/40 ring-dashed")}
     >
-      <header className="flex items-center gap-2 px-1 pb-2 text-sm">
+      <button
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className={cn("flex w-full items-center gap-2 rounded-lg px-1 text-left text-sm transition-colors hover:bg-muted/40", isOpen && "pb-2")}
+      >
+        <ChevronRight className={cn("size-3.5 text-muted-foreground transition-transform", isOpen && "rotate-90")} />
         <span className={cn("font-semibold", isToday && "text-primary")}>Day {day}</span>
         {date && <span className="text-muted-foreground">{format(parseISO(date), "EEE, MMM d")}</span>}
         {isToday && <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground uppercase">Today</span>}
@@ -58,31 +63,46 @@ function DaySection({ day, problems }: DayGroup) {
         <span className={cn("ml-auto text-xs tabular-nums text-muted-foreground", done === problems.length && "text-basic")}>
           {done}/{problems.length}
         </span>
-      </header>
-      <div className="flex flex-col gap-1.5">
-        {problems.map((p) => (
-          <ProblemCard key={p.id} problem={p} />
-        ))}
-      </div>
+      </button>
+      {isOpen && (
+        <div className="flex flex-col gap-1.5">
+          {problems.map((p) => (
+            <ProblemCard key={p.id} problem={p} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
-export function TimelineView({ problems, expandAll }: { problems: Problem[]; expandAll: boolean }) {
+export function TimelineView({ problems, expandAll, workingDay }: { problems: Problem[]; expandAll: boolean; workingDay: number | null }) {
   const a = useSprintActions();
   const groups = useMemo(() => group(problems), [problems]);
 
-  const defaultOpen = useMemo(() => {
-    const current = a.currentDay == null ? undefined : groups.find((g) => g.days.some((d) => d.day >= a.currentDay!));
-    const firstUnfinished = groups.find((g) => g.done < g.total);
-    return (current ?? firstUnfinished ?? groups[0])?.sprint;
-  }, [groups, a.currentDay]);
+  const defaultOpen = useMemo(
+    () => (groups.find((g) => g.days.some((d) => d.day === workingDay)) ?? groups[0])?.sprint,
+    [groups, workingDay],
+  );
 
-  // User toggles override the default (current sprint + the sprint holding the focused problem).
+  // User toggles override the defaults (working sprint/day + wherever the focused problem lives).
   const [overrides, setOverrides] = useState<Map<number, boolean>>(new Map());
-  const focusedSprint = problems.find((x) => x.id === a.focusedId)?.sprint_no;
+  const [dayOverrides, setDayOverrides] = useState<Map<number, boolean>>(new Map());
+  const focused = problems.find((x) => x.id === a.focusedId);
+  const focusedSprint = focused?.sprint_no;
+  const focusedDay = focused?.day_no;
+
+  // Moving focus (j/k, ⌘K, "go to today") re-opens a hand-collapsed sprint/day so the card is visible.
+  const [prevFocusedId, setPrevFocusedId] = useState(a.focusedId);
+  if (prevFocusedId !== a.focusedId) {
+    setPrevFocusedId(a.focusedId);
+    if (focusedSprint != null && overrides.has(focusedSprint)) setOverrides((m) => { const n = new Map(m); n.delete(focusedSprint); return n; });
+    if (focusedDay != null && dayOverrides.has(focusedDay)) setDayOverrides((m) => { const n = new Map(m); n.delete(focusedDay); return n; });
+  }
+
   const isOpenFor = (n: number) => expandAll || (overrides.get(n) ?? (n === defaultOpen || n === focusedSprint));
   const toggle = (n: number) => setOverrides((m) => new Map(m).set(n, !isOpenFor(n)));
+  const isDayOpen = (d: number) => expandAll || (dayOverrides.get(d) ?? (d === workingDay || d === focusedDay));
+  const toggleDay = (d: number) => setDayOverrides((m) => new Map(m).set(d, !isDayOpen(d)));
 
   return (
     <div className="flex flex-col gap-3">
@@ -111,7 +131,7 @@ export function TimelineView({ problems, expandAll }: { problems: Problem[]; exp
             {isOpen && (
               <div className="grid gap-1 border-t p-2">
                 {g.days.map((d) => (
-                  <DaySection key={d.day} {...d} />
+                  <DaySection key={d.day} {...d} isOpen={isDayOpen(d.day)} onToggle={() => toggleDay(d.day)} />
                 ))}
               </div>
             )}
