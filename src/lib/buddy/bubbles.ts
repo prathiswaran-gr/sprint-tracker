@@ -1,5 +1,5 @@
 import type { FocusPhase } from "./focus";
-import { pick, plural } from "./messages";
+import { pick, plural, type Vars } from "./messages";
 import { greetingSituation, milestone, salutation, type DayStats, type GreetKey, type ScheduleStatus } from "./triggers";
 
 export type Mood = "idle" | "happy" | "cheer" | "sleepy" | "focused" | "concerned";
@@ -68,7 +68,7 @@ export function celebrateBubble(before: DayStats, opts: PickOpts = {}): Bubble {
 }
 
 export function scheduleBubble(st: ScheduleStatus, opts: PickOpts = {}): Bubble {
-  const vars =
+  const vars: Vars =
     st.kind === "restDay"
       ? {}
       : { planned: st.planned, working: st.working, behind: st.kind === "behind" ? plural(st.behind, "problem") : "" };
@@ -112,7 +112,14 @@ export function enqueue(queue: Bubble[], b: Bubble): Bubble[] {
   const mate = mateKind && queue.find((q) => q.kind === mateKind);
   if (mate) {
     const [greet, sched] = b.kind === "greeting" ? [b, mate] : [mate, b];
-    next = { ...greet, kind: "schedule", text: `${greet.text}\n${sched.text}`, mood: sched.mood === "concerned" ? "concerned" : greet.mood };
+    // Keep the already-queued bubble's id so an on-screen bubble updates in place instead of re-animating.
+    next = {
+      ...greet,
+      id: mate.id,
+      kind: "schedule",
+      text: `${greet.text}\n${sched.text}`,
+      mood: sched.mood === "concerned" ? "concerned" : greet.mood,
+    };
     rest = queue.filter((q) => q !== mate);
   }
   return [...rest.filter((q) => q.kind !== next.kind), next]

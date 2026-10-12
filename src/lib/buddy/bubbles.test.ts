@@ -67,9 +67,11 @@ describe("enqueue", () => {
   });
 
   it("merges greeting and schedule in either order", () => {
-    for (const q of [enqueue(enqueue([], greet), sched), enqueue(enqueue([], sched), greet)]) {
+    for (const [first, second] of [[greet, sched], [sched, greet]]) {
+      const q = enqueue(enqueue([], first), second);
       expect(q).toHaveLength(1);
-      expect(q[0]).toMatchObject({ kind: "schedule", id: greet.id, mood: "concerned", text: `${greet.text}\n${sched.text}`, actions: greet.actions });
+      // id of the bubble already on screen, so it updates in place
+      expect(q[0]).toMatchObject({ kind: "schedule", id: first.id, mood: "concerned", text: `${greet.text}\n${sched.text}`, actions: greet.actions });
     }
   });
 });

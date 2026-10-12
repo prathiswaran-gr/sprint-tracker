@@ -35,7 +35,7 @@ export function load<K extends keyof Schema>(key: K): Schema[K] {
     const raw = localStorage.getItem(PREFIX + key);
     if (raw == null) return fallback;
     const v: unknown = JSON.parse(raw);
-    if (isObj(fallback)) return (isObj(v) ? { ...fallback, ...v } : fallback) as Schema[K];
+    if (isObj(fallback)) return (isObj(v) ? { ...(fallback as object), ...v } : fallback) as Schema[K];
     return v as Schema[K];
   } catch {
     return fallback;

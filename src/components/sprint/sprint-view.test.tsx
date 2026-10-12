@@ -28,6 +28,7 @@ const api = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/api", () => api);
 
+import { BuddyProvider, useBuddyEvents } from "@/components/buddy/buddy-context";
 import { SprintView } from "./sprint-view";
 
 // Day 1 was two days ago → today is Day 3.
@@ -67,6 +68,27 @@ describe("SprintView", () => {
     await user.click(box);
     await waitFor(() => expect(api.updateProblem).toHaveBeenCalledWith("c", { done_at: expect.any(String) }));
     expect(screen.getByRole("checkbox", { name: /Mark Two Sum not done/ })).toBeChecked();
+  });
+
+  it("tells Sprinty only when a problem becomes done", async () => {
+    const seen: string[] = [];
+    function Spy() {
+      useBuddyEvents((e) => {
+        seen.push(e.type);
+      });
+      return null;
+    }
+    const user = userEvent.setup();
+    renderWithProviders(
+      <BuddyProvider>
+        <Spy />
+        <SprintView id="s1" />
+      </BuddyProvider>,
+    );
+    await user.click(await dayHeader(3));
+    await user.click(await screen.findByRole("checkbox", { name: /Mark Two Sum done/ }));
+    await user.click(await screen.findByRole("checkbox", { name: /Mark Two Sum not done/ }));
+    expect(seen).toEqual(["solved"]);
   });
 
   it("filters by search and company from the URL", async () => {

@@ -53,6 +53,19 @@ export async function getSprint(id: string): Promise<{ sprint: Sprint; problems:
   return { sprint, problems };
 }
 
+/** done_at of every problem the signed-in user completed since `since` (ISO). RLS scopes rows to the user. */
+export async function listMyDoneTimestamps(since: string): Promise<string[]> {
+  const out: string[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const page = unwrap(
+      await db().from("problems").select("done_at").gte("done_at", since).order("done_at").range(from, from + PAGE - 1),
+    ) as { done_at: string }[];
+    out.push(...page.map((r) => r.done_at));
+    if (page.length < PAGE) break;
+  }
+  return out;
+}
+
 export async function createSprint(input: { title: string; start_date: string | null; skip_weekends: boolean }, rows: ProblemInput[]) {
   const sprint = unwrap(await db().from("sprints").insert(input).select().single()) as Sprint;
   try {

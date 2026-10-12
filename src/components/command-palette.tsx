@@ -1,9 +1,10 @@
 "use client";
 
-import { Check, Compass, FolderKanban, Moon, Plus, Users, Zap } from "lucide-react";
+import { Check, Compass, FolderKanban, Moon, Plus, Timer, Users, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useBuddy } from "@/components/buddy/buddy-context";
 import {
   Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandShortcut,
 } from "@/components/ui/command";
@@ -24,6 +25,7 @@ export function CommandPalette() {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const [accent, setAccent] = useAccent({ syncToAccount: true });
+  const { notify } = useBuddy();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -85,6 +87,11 @@ export function CommandPalette() {
                 <Users /> Group: {g.name}
               </CommandItem>
             ))}
+          </CommandGroup>
+          <CommandGroup heading="Sprinty">
+            <CommandItem onSelect={run(() => notify({ type: "startFocus" }))}>
+              <Timer /> Start focus session (25 min)
+            </CommandItem>
           </CommandGroup>
           <CommandGroup heading="Preferences">
             <CommandItem onSelect={run(() => setTheme(resolvedTheme === "dark" ? "light" : "dark"))}>

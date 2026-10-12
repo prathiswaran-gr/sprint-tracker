@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useBuddy } from "@/components/buddy/buddy-context";
+import { buddyDoneKey } from "@/hooks/use-buddy-stats";
 import * as api from "@/lib/api";
 import type { Problem, Sprint } from "@/lib/types";
 
@@ -27,13 +29,17 @@ function useOptimistic<V>(id: string, fn: (v: V) => Promise<unknown>, apply: (d:
       if (ctx?.prev) qc.setQueryData(sprintKey(id), ctx.prev);
       toast.error(`Couldn't ${label}`, { description: err.message });
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: ["sprints"] }),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["sprints"] });
+      qc.invalidateQueries({ queryKey: buddyDoneKey });
+    },
   });
 }
 
 const patchProblems = (d: SprintData, patch: (p: Problem) => Problem): SprintData => ({ ...d, problems: d.problems.map(patch) });
 
 export function useProblemMutations(sprintId: string) {
+  const buddy = useBuddy();
   const update = useOptimistic(
     sprintId,
     ({ id, patch }: { id: string; patch: api.ProblemPatch }) => api.updateProblem(id, patch),
@@ -59,8 +65,10 @@ export function useProblemMutations(sprintId: string) {
   );
 
   return {
-    toggleDone: (p: Problem) =>
-      update.mutate({ id: p.id, patch: { done_at: p.done_at ? null : new Date().toISOString() } }),
+    toggleDone: (p: Problem) => {
+      if (!p.done_at) buddy.notify({ type: "solved" });
+      update.mutate({ id: p.id, patch: { done_at: p.done_at ? null : new Date().toISOString() } });
+    },
     toggleStar: (p: Problem) => update.mutate({ id: p.id, patch: { starred: !p.starred } }),
     saveNotes: (p: Problem, notes: string) => update.mutateAsync({ id: p.id, patch: { notes } }),
     reschedule: (changes: api.DayChange[]) => reschedule.mutateAsync(changes),
