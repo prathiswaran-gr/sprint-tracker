@@ -157,7 +157,7 @@ export function Buddy() {
         type="button"
         aria-label="Show Sprinty"
         onClick={() => setSettings({ ...settings, hidden: false })}
-        className="fixed bottom-5 left-5 z-40 size-3 rounded-full bg-primary/50 transition hover:scale-150 hover:bg-primary md:left-69"
+        className="fixed bottom-5 left-5 z-40 size-3 rounded-full bg-primary/50 transition hover:scale-150 hover:bg-primary md:bottom-19 md:left-7"
       />
     );
   }
@@ -166,7 +166,7 @@ export function Buddy() {
   const mood = current?.mood ?? "idle";
 
   return (
-    <div className="pointer-events-none fixed bottom-4 left-4 z-40 flex items-end gap-2 md:left-68">
+    <div className="pointer-events-none fixed bottom-4 left-4 z-40 flex items-end gap-2 md:bottom-15 md:left-5">
       {sprintId && <ScheduleWatch sprintId={sprintId} onStatus={push} />}
       <div className="relative origin-bottom-left max-md:scale-80">
         <Confetti burstKey={burst} />

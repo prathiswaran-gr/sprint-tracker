@@ -18,7 +18,7 @@ import { UserMenu, type SessionUser } from "./user-menu";
 // Sprinty reads localStorage on first render, so skip SSR to avoid hydration mismatches.
 const Buddy = dynamic(() => import("@/components/buddy/buddy").then((m) => m.Buddy), { ssr: false });
 
-function Sidebar({ user, onNavigate }: { user: SessionUser; onNavigate?: () => void }) {
+function Sidebar({ user, onNavigate, buddySlot }: { user: SessionUser; onNavigate?: () => void; buddySlot?: boolean }) {
   return (
     <div className="flex h-full flex-col gap-4 p-3">
       <Logo href="/app" className="px-2 pt-1" />
@@ -33,6 +33,8 @@ function Sidebar({ user, onNavigate }: { user: SessionUser; onNavigate?: () => v
       <div className="min-h-0 flex-1 overflow-y-auto">
         <SprintNav onNavigate={onNavigate} />
       </div>
+      {/* Reserved for Sprinty, which is fixed-positioned over this slot on desktop. */}
+      {buddySlot && <div aria-hidden className="h-18 shrink-0" />}
       <div className="flex items-center gap-1">
         <div className="min-w-0 flex-1"><UserMenu user={user} /></div>
         <NudgeInbox />
@@ -49,7 +51,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
       <BuddyProvider>
         <div className="flex min-h-screen">
           <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r bg-sidebar md:block">
-            <Sidebar user={user} />
+            <Sidebar user={user} buddySlot />
           </aside>
 
           <div className="flex min-w-0 flex-1 flex-col">
@@ -68,7 +70,7 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
                 <Sidebar user={user} onNavigate={() => setOpen(false)} />
               </SheetContent>
             </Sheet>
-            <main className="min-w-0 flex-1">{children}</main>
+            <main className="min-w-0 flex-1 max-md:pb-24">{children}</main>
           </div>
           <CommandPalette />
           <AccentSync accent={user.accent} />
